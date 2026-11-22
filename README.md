@@ -17,6 +17,6 @@ The Journal library keeps entries in this browser's IndexedDB. Each entry has a 
 
 The Journal's Talk to OVI button saves the current draft and opens the chat with a local journal reference and title indicator. It does not transmit journal content or generate a response. Chat sending and attachments remain unavailable.
 
-The decorative foliage, landscape, and sidebar plants are clipped from the supplied OVI reference artwork in `public/ovi-reference-art.png`. The interface itself is built from separate components. The display fonts load from Google Fonts, with local serif and sans-serif fallbacks.
+The decorative foliage, landscape, and sidebar plants are clipped from the supplied OVI reference artwork in `public/ovi-reference-art.png`. The OVI wordmark and flower use the supplied `public/Refined Terracotta OVI Logo.png` artwork. The interface itself is built from separate components. The display fonts load from Google Fonts, with local serif and sans-serif fallbacks.
 
 The Journal’s three-dot menu opens a fullscreen writing view using the browser Fullscreen API, where supported. Select text to show the bold, underline, and highlight controls.

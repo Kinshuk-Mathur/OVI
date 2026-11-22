@@ -12,8 +12,14 @@ button { border: 0; }
 .app-shell { min-height: 100svh; display: flex; }
 .sidebar { flex: 0 0 var(--sidebar-width); position: relative; z-index: 2; min-height: 100svh; overflow: hidden; background: #f9ead7; border-right: 1px solid rgba(126, 76, 48, .08); }
 .sidebar-top { position: relative; z-index: 1; padding: 45px 0 0 51px; }
-.ovi-logo { display: inline-flex; align-items: center; gap: 13px; text-decoration: none; color: var(--burgundy); font: 700 45px/.95 'Cormorant Garamond', Georgia, serif; letter-spacing: -.055em; }
-.logo-flower { width: 51px; height: 51px; color: #ce4933; flex: none; }
+.ovi-logo { display: inline-flex; width: 148px; text-decoration: none; }
+.ovi-logo-crop, .ovi-flower { position: relative; display: block; overflow: hidden; flex: none; }
+.ovi-logo-crop { width: 100%; aspect-ratio: 978 / 348; }
+.ovi-logo-crop img, .ovi-flower img { position: absolute; display: block; max-width: none; height: auto; filter: url(#ovi-logo-background); }
+.ovi-logo-crop img { width: 148.06%; left: -25.26%; top: -98.85%; }
+.ovi-flower { aspect-ratio: 1; }
+.ovi-flower img { width: 411.36%; left: -69.60%; top: -98.85%; }
+.logo-filter { position: absolute; width: 0; height: 0; overflow: hidden; }
 .navigation { position: relative; z-index: 1; display: flex; flex-direction: column; gap: 9px; margin: 43px 19px 0; }
 .nav-item { height: 70px; display: flex; align-items: center; gap: 17px; padding: 0 32px; color: #352b29; text-decoration: none; border-radius: 40px; font-size: 18px; white-space: nowrap; }
 .nav-item svg { width: 25px; height: 25px; stroke-width: 1.8; flex: none; }
@@ -52,8 +58,7 @@ button { border: 0; }
   .app-shell { display: block; }
   .sidebar { min-height: 0; height: 126px; border-right: 0; border-bottom: 1px solid rgba(126, 76, 48, .08); overflow: visible; }
   .sidebar-top { height: 72px; padding: 16px 20px 0; display: flex; align-items: flex-start; justify-content: space-between; }
-  .ovi-logo { gap: 8px; font-size: 34px; }
-  .logo-flower { width: 37px; height: 37px; }
+  .ovi-logo { width: 112px; }
   .mobile-avatar { display: block; }
   .mobile-avatar .user-avatar { width: 39px; height: 39px; font-size: 22px; }
   .desktop-avatar, .sidebar-art, .desktop-label { display: none; }
