@@ -1,0 +1,333 @@
+@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&family=DM+Sans:wght@400;500;600&display=swap');
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root { --paper: #faecd9; --burgundy: #450920; --red: #c83e2e; --peach: #f9d8bf; --sidebar-width: 246px; }
+* { box-sizing: border-box; }
+html, body { margin: 0; min-height: 100%; }
+body { color: var(--burgundy); font-family: 'DM Sans', sans-serif; background: var(--paper); }
+button, textarea { font: inherit; }
+button { border: 0; }
+.app-shell { min-height: 100svh; display: flex; }
+.sidebar { flex: 0 0 var(--sidebar-width); position: relative; z-index: 2; min-height: 100svh; overflow: hidden; background: #f9ead7; border-right: 1px solid rgba(126, 76, 48, .08); }
+.sidebar-top { position: relative; z-index: 1; padding: 45px 0 0 51px; }
+.ovi-logo { display: inline-flex; align-items: center; gap: 13px; text-decoration: none; color: var(--burgundy); font: 700 45px/.95 'Cormorant Garamond', Georgia, serif; letter-spacing: -.055em; }
+.logo-flower { width: 51px; height: 51px; color: #ce4933; flex: none; }
+.navigation { position: relative; z-index: 1; display: flex; flex-direction: column; gap: 9px; margin: 43px 19px 0; }
+.nav-item { height: 70px; display: flex; align-items: center; gap: 17px; padding: 0 32px; color: #352b29; text-decoration: none; border-radius: 40px; font-size: 18px; white-space: nowrap; }
+.nav-item svg { width: 25px; height: 25px; stroke-width: 1.8; flex: none; }
+.nav-item.active { background: #f8cfb2; color: #671b1a; font-weight: 500; }
+.nav-item.active:hover { background: #f5c5a7; }
+.nav-item.unavailable { cursor: default; }
+.mobile-label, .mobile-avatar { display: none; }
+.sidebar-art { position: absolute; bottom: 0; left: 0; width: 100%; height: 40%; background-image: url('/ovi-reference-art.png'); background-repeat: no-repeat; background-position: left bottom; background-size: 1672px 941px; pointer-events: none; -webkit-mask-image: linear-gradient(to bottom, transparent, #000 12%); mask-image: linear-gradient(to bottom, transparent, #000 12%); }
+.talk-page { position: relative; flex: 1; min-width: 0; min-height: 100svh; overflow: hidden; background: var(--paper); }
+.talk-page::before { content: ''; position: absolute; inset: 0; z-index: 0; opacity: .12; pointer-events: none; background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 180 180' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='.24'/%3E%3C/svg%3E"); }
+.illustration { position: absolute; inset: 0; overflow: hidden; pointer-events: none; }
+.branch-art, .landscape-art { position: absolute; inset: 0; overflow: hidden; }
+.branch-art img, .landscape-art img { position: absolute; display: block; max-width: none; width: 117.25%; height: auto; left: -17.25%; }
+.branch-art img { top: 0; -webkit-mask-image: radial-gradient(ellipse 52% 39% at 15% 0%, #000 0%, #000 60%, transparent 100%); mask-image: radial-gradient(ellipse 52% 39% at 15% 0%, #000 0%, #000 60%, transparent 100%); }
+.landscape-art img { bottom: 0; clip-path: inset(67% 0 0 14.7%); -webkit-mask-image: linear-gradient(to bottom, transparent 67%, #000 73%); mask-image: linear-gradient(to bottom, transparent 67%, #000 73%); }
+.desktop-avatar { position: absolute; z-index: 2; top: 30px; right: 40px; }
+.user-avatar { width: 54px; height: 54px; display: grid; place-items: center; border-radius: 50%; background: #f6d5bc; color: #60171b; font: 700 29px/1 'Cormorant Garamond', Georgia, serif; }
+.welcome-content { position: absolute; z-index: 1; top: 23.8%; left: 50%; transform: translateX(-50%); width: min(920px, calc(100% - 96px)); display: flex; flex-direction: column; align-items: center; }
+.greeting { width: 100%; text-align: center; }
+.greeting-flower { display: block; width: 78px; height: 78px; margin: 0 auto 29px; color: #d84d37; }
+.greeting h1 { margin: 0; color: #500c14; font: 600 clamp(48px, 4.35vw, 72px)/1.12 'Cormorant Garamond', Georgia, serif; letter-spacing: -.035em; white-space: nowrap; }
+.greeting-name { position: relative; display: inline-block; }
+.composer { width: 100%; min-height: 90px; margin-top: 77px; padding: 12px 13px 12px 16px; display: flex; align-items: center; gap: 19px; background: #fff8ef; border: 1px solid rgba(200, 155, 119, .12); border-radius: 48px; box-shadow: 0 10px 24px rgba(111, 68, 40, .08); transition: box-shadow .2s, border-color .2s; }
+.composer:focus-within { border-color: #cb806b; box-shadow: 0 0 0 3px rgba(200, 79, 55, .15), 0 10px 24px rgba(111, 68, 40, .08); }
+.add-button, .send-button { display: grid; place-items: center; flex: none; border-radius: 50%; }
+.add-button { width: 59px; height: 59px; background: #fae0ce; color: #64191b; }
+.add-button svg { width: 27px; height: 27px; stroke-width: 2; }
+.composer-divider { height: 39px; width: 1px; background: #e9d6c8; flex: none; }
+.composer textarea { display: block; flex: 1; width: 0; min-height: 28px; max-height: 120px; padding: 0; resize: none; overflow-y: auto; border: 0; outline: 0; color: #5e3030; background: transparent; font-size: 22px; line-height: 28px; }
+.composer textarea::placeholder { color: #805e58; opacity: 1; }
+.send-button { width: 64px; height: 64px; color: #fffaf2; background: #c43e2d; }
+.send-button svg { width: 25px; height: 25px; stroke-width: 1.8; }
+.add-button:disabled, .send-button:disabled { cursor: not-allowed; }
+@media (max-width: 1100px) and (min-width: 701px) { :root { --sidebar-width: 205px; } .sidebar-top { padding-left: 35px; } .navigation { margin-left: 12px; margin-right: 12px; } .nav-item { padding: 0 24px; font-size: 16px; } .welcome-content { width: min(850px, calc(100% - 70px)); } .greeting h1 { font-size: clamp(46px, 5.4vw, 65px); } }
+@media (max-width: 700px) {
+  .app-shell { display: block; }
+  .sidebar { min-height: 0; height: 126px; border-right: 0; border-bottom: 1px solid rgba(126, 76, 48, .08); overflow: visible; }
+  .sidebar-top { height: 72px; padding: 16px 20px 0; display: flex; align-items: flex-start; justify-content: space-between; }
+  .ovi-logo { gap: 8px; font-size: 34px; }
+  .logo-flower { width: 37px; height: 37px; }
+  .mobile-avatar { display: block; }
+  .mobile-avatar .user-avatar { width: 39px; height: 39px; font-size: 22px; }
+  .desktop-avatar, .sidebar-art, .desktop-label { display: none; }
+  .mobile-label { display: inline; }
+  .navigation { flex-direction: row; gap: 6px; margin: 0 16px; }
+  .nav-item { height: 43px; padding: 0 16px; gap: 8px; font-size: 15px; }
+  .nav-item svg { width: 18px; height: 18px; }
+  .talk-page { min-height: calc(100svh - 126px); }
+  .branch-art img, .landscape-art img { width: 900px; left: 50%; }
+  .branch-art img { left: -133px; opacity: .9; }
+  .landscape-art img { transform: translateX(-50%); }
+  .welcome-content { top: 24%; width: calc(100% - 36px); }
+  .greeting-flower { width: 58px; height: 58px; margin-bottom: 23px; }
+  .greeting h1 { font-size: clamp(35px, 8vw, 52px); letter-spacing: -.04em; }
+  .composer { min-height: 70px; margin-top: 58px; padding: 9px; gap: 11px; }
+  .add-button, .send-button { width: 50px; height: 50px; }
+  .composer-divider { height: 30px; }
+  .composer textarea { font-size: 16px; line-height: 24px; min-height: 24px; }
+  .send-button svg { width: 21px; height: 21px; }
+}
+@media (max-width: 360px) { .greeting h1 { font-size: 32px; } .composer { gap: 8px; } }
+@media (max-height: 650px) and (min-width: 701px) { .welcome-content { top: 18%; } .greeting-flower { width: 60px; height: 60px; margin-bottom: 18px; } .composer { margin-top: 45px; } }
+@media (prefers-reduced-motion: reduce) { *, *::before, *::after { scroll-behavior: auto !important; transition-duration: .01ms !important; animation-duration: .01ms !important; animation-iteration-count: 1 !important; } }
+
+/* Journal: a continuous sheet of paper within the existing OVI landscape. */
+.journal-shell .sidebar { position: sticky; top: 0; height: 100svh; }
+.journal-page { overflow: clip; }
+.journal-layout { position: relative; z-index: 1; width: min(1175px, calc(100% - 100px)); margin: 125px auto 0; }
+.journal-paper { min-height: 645px; padding: 40px 72px 85px; border: 1.5px solid #e9c6aa; border-radius: 32px; background: #fff8ed; box-shadow: 0 8px 40px rgba(80, 44, 25, .035); }
+.journal-header { position: relative; }
+.journal-date { min-height: 24px; display: flex; gap: 14px; align-items: center; color: #a2543c; font-size: 14px; font-weight: 600; letter-spacing: .14em; text-transform: uppercase; }
+.journal-header-actions { position: absolute; top: -11px; right: -62px; display: flex; align-items: center; gap: 12px; }
+.journal-icon-button { width: 43px; height: 43px; display: grid; place-items: center; color: #692318; background: transparent; border-radius: 50%; cursor: pointer; transition: background .18s ease; }
+.journal-icon-button:hover:not(:disabled) { background: #f8dfcf; }
+.journal-icon-button:disabled { opacity: .45; cursor: not-allowed; }
+.journal-icon-button svg { width: 25px; height: 25px; stroke-width: 1.7; }
+.journal-action-divider { width: 1px; height: 24px; background: #e9c6aa; }
+.journal-menu-wrap { position: relative; }
+.journal-menu { position: absolute; z-index: 4; right: 0; top: 48px; width: 165px; padding: 6px; border: 1px solid #ead2bf; border-radius: 12px; background: #fffaf2; box-shadow: 0 8px 20px #57352618; }
+.journal-menu button { display: flex; align-items: center; gap: 9px; width: 100%; padding: 10px; border-radius: 8px; background: transparent; color: #573026; text-align: left; font-size: 14px; cursor: pointer; }
+.journal-menu button:hover { background: #fae8da; }
+.journal-menu button svg { width: 16px; height: 16px; flex: none; }
+.journal-title-wrap { position: relative; width: fit-content; max-width: min(760px, 100%); margin: 17px 0 0; }
+.journal-title { display: block; field-sizing: content; width: auto; min-width: 12ch; max-width: 100%; padding: 0 0 8px; border: 0; outline: 0; background: transparent; color: var(--burgundy); font: 600 clamp(43px, 3.5vw, 60px)/1.12 'Cormorant Garamond', Georgia, serif; letter-spacing: -.025em; }
+.journal-title::placeholder { color: #bca59a; }
+.journal-title:disabled { opacity: 1; }
+.journal-editor { margin-top: 34px; min-height: 360px; }
+.journal-writing { min-height: 360px; outline: none; color: #23363a; font-size: 21px; line-height: 1.75; letter-spacing: -.005em; caret-color: #c84b36; overflow-wrap: anywhere; }
+.journal-writing > p, .journal-writing > h2, .journal-writing > h3 { max-width: none; margin: 0 0 23px; }
+.journal-writing p.is-editor-empty:first-child::before { content: attr(data-placeholder); float: left; color: #aa9990; pointer-events: none; height: 0; }
+.journal-writing ::selection, .journal-title::selection { background: #f6d5bf; }
+.journal-photo-wrap { position: relative; display: block; width: 100%; max-width: 100%; margin: 0; }
+.journal-photo { position: relative; width: 100%; max-width: 100%; margin: 0; padding: 9px; border-radius: 5px; background: #fff7e9; box-shadow: 0 5px 14px #5a3a2c33; transform: rotate(-1.5deg); cursor: grab; }
+.journal-photo-wrap:nth-of-type(even) .journal-photo { transform: rotate(1.5deg); }
+.journal-photo img { display: block; max-width: 100%; width: 100%; height: auto; }
+.photo-tape { position: absolute; z-index: 1; width: 112px; height: 29px; left: 50%; top: -14px; padding: 2px 5px; border: 0; border-radius: 1px; outline: 0; background: #efb89d; color: #6b342a; font: 500 11px/1.2 "DM Sans", sans-serif; text-align: center; transform: translateX(-50%) rotate(-2deg); cursor: text; }
+.photo-tape::placeholder { color: #9b6453; }
+.photo-tape:focus-visible { box-shadow: inset 0 0 0 2px #b76450; }
+.photo-loading { min-height: 120px; display: grid; place-items: center; color: #856b5d; font-size: 14px; text-align: center; }
+.photo-controls { position: absolute; z-index: 4; top: calc(100% + 7px); left: 0; display: flex; flex-wrap: wrap; gap: 3px; width: max-content; max-width: min(340px, 85vw); margin: 0; padding: 3px; border: 1px solid #ead0bd; border-radius: 10px; background: #fffaf2; box-shadow: 0 4px 14px #55382a12; }
+.photo-controls button, .photo-drag { width: 34px; height: 34px; display: grid; place-items: center; border-radius: 7px; background: transparent; color: #6e3b30; }
+.photo-controls button { cursor: pointer; }
+.photo-controls button:hover:not(:disabled) { background: #f8e4d5; }
+.photo-controls button:disabled { opacity: .35; cursor: not-allowed; }
+.photo-drag { cursor: grab; }
+.journal-notice { margin: 24px 0 0; color: #923d2f; font-size: 14px; line-height: 1.5; }
+.journal-footer { display: flex; justify-content: flex-end; padding: 30px 0 40px; }
+.talk-action { min-height: 58px; display: inline-flex; align-items: center; gap: 12px; padding: 0 28px; border-radius: 32px; color: #fffaf4; background: #c94b35; box-shadow: 0 6px 18px #78351f1f; font-size: 17px; cursor: pointer; transition: background .18s ease; }
+.talk-action:hover:not(:disabled) { background: #b53d2b; }
+.talk-action:disabled { opacity: .55; cursor: not-allowed; }
+.journal-icon-button:focus-visible, .journal-menu button:focus-visible, .photo-controls button:focus-visible, .talk-action:focus-visible, .nav-item:focus-visible { outline: 3px solid #b95943; outline-offset: 3px; }
+.journal-context { max-width: 100%; margin: 48px 0 -53px; padding: 8px 14px; border-radius: 24px; color: #7a4334; background: #fae3d0; font-size: 14px; text-align: center; overflow-wrap: anywhere; }
+.journal-context span { font-weight: 600; }
+@media (max-width: 1100px) and (min-width: 701px) {
+  .journal-layout { width: calc(100% - 64px); margin-top: 105px; }
+  .journal-paper { padding: 38px 58px 75px; }
+  .journal-header-actions { right: -26px; }
+  .journal-writing { font-size: 19px; }
+}
+@media (max-width: 700px) {
+  .journal-shell .sidebar { position: relative; height: 126px; }
+  .journal-layout { width: calc(100% - 28px); margin-top: 48px; }
+  .journal-paper { min-height: 570px; padding: 27px 22px 48px; border-radius: 24px; }
+  .journal-date { font-size: 12px; gap: 8px; }
+  .journal-date svg { width: 17px; }
+  .journal-header-actions { top: -9px; right: -8px; gap: 3px; }
+  .journal-icon-button { width: 40px; height: 40px; }
+  .journal-icon-button svg { width: 21px; }
+  .journal-title-wrap { margin-top: 22px; }
+  .journal-title { font-size: clamp(33px, 8.4vw, 48px); }
+  .journal-editor, .journal-writing { min-height: 320px; }
+  .journal-writing { font-size: 17px; line-height: 1.75; }
+  .journal-footer { padding: 24px 0 35px; }
+  .talk-action { min-height: 52px; font-size: 16px; }
+  .journal-context { margin: 35px 0 -38px; font-size: 12px; }
+}
+
+.journal-paper:focus-within { border-color: #c98f79; box-shadow: 0 0 0 2px #d8a78b40, 0 8px 40px rgba(80, 44, 25, .035); }
+.journal-writing ul, .journal-writing ol { max-width: 760px; padding-left: 1.6em; margin: 0 0 23px; }
+.journal-writing ul { list-style: disc; }
+.journal-writing ol { list-style: decimal; }
+.journal-writing h1, .journal-writing h2, .journal-writing h3 { color: var(--burgundy); font-family: 'Cormorant Garamond', Georgia, serif; line-height: 1.2; }
+.journal-writing h1 { font-size: 1.8em; }
+.journal-writing h2 { font-size: 1.5em; }
+.journal-writing h3 { font-size: 1.25em; }
+
+/* Shared controls and restrained page entrance. */
+.user-controls { position: relative; display: flex; align-items: center; gap: 12px; }
+.fullscreen-button { display: grid; place-items: center; width: 44px; height: 44px; border-radius: 50%; background: #f8dfcc; color: #681e1d; cursor: pointer; transition: background .2s ease; }
+.fullscreen-button:hover { background: #f2cbb2; }
+.fullscreen-button:focus-visible, .journal-photo-wrap:focus-visible { outline: 3px solid #b95943; outline-offset: 3px; }
+.fullscreen-button svg { width: 19px; height: 19px; stroke-width: 1.8; }
+.talk-page { animation: ovi-page-arrive .24s ease-out both; }
+@keyframes ovi-page-arrive { from { opacity: 0; } to { opacity: 1; } }
+.nav-item { transition: background-color .2s ease, color .2s ease; }
+.nav-item:not(.active):hover { background: rgba(248, 207, 178, .45); }
+
+/* Float photos within the document so prose and other photos can share a row. */
+.journal-writing .node-journalImage { position: relative; display: inline-block; vertical-align: top; width: min(var(--photo-width), calc(100% - 22px)); max-width: 100%; margin: 16px 22px 26px min(var(--photo-offset), max(0px, calc(100% - var(--photo-width) - 22px))); }
+.journal-photo:active, .photo-drag:active { cursor: grabbing; }
+@media (max-width: 700px) {
+  .user-controls { gap: 7px; }
+  .fullscreen-button { width: 38px; height: 38px; }
+  .journal-writing .node-journalImage { margin-right: 14px; margin-bottom: 22px; }
+}
+
+.node-journalImage[data-controls-align="right"] .photo-controls { left: auto; right: 0; }
+@media (max-width: 600px) {
+  .journal-writing .node-journalImage {
+    width: min(var(--photo-width), 100%);
+    margin-right: 0;
+    margin-left: min(var(--photo-offset), max(0px, calc(100% - var(--photo-width))));
+  }
+}
+
+.fullscreen-error { position: absolute; z-index: 5; top: calc(100% + 8px); right: 0; width: 220px; padding: 9px 12px; border: 1px solid #ead0bd; border-radius: 10px; color: #6e3b30; background: #fffaf2; box-shadow: 0 4px 14px #55382a12; font-size: 13px; line-height: 1.4; }
+
+.journal-title:focus-visible { color: #68272b; caret-color: #c84b36; }
+.journal-writing mark { background: #f7d394; color: inherit; border-radius: 2px; }
+.formatting-menu { z-index: 20; padding: 5px; border: 1px solid #ead0bd; border-radius: 12px; background: #fffaf2; box-shadow: 0 5px 20px #57352624; }
+.formatting-menu [role="toolbar"] { display: flex; gap: 3px; }
+.formatting-menu button { display: grid; place-items: center; width: 36px; height: 36px; border-radius: 7px; background: transparent; color: #67382e; cursor: pointer; }
+.formatting-menu button:hover, .formatting-menu button[aria-pressed="true"] { background: #f8dfcc; }
+.formatting-menu button:focus-visible { outline: 2px solid #b95943; outline-offset: 1px; }
+.formatting-menu button svg { width: 18px; height: 18px; }
+.journal-paper:fullscreen { width: 100%; height: 100%; max-width: none; max-height: none; overflow-y: auto; padding: 48px max(24px, calc((100vw - 1050px) / 2)) 100px; border: 0; border-radius: 0; box-shadow: none; background: #fff8ed; }
+.journal-paper:fullscreen .journal-editor, .journal-paper:fullscreen .journal-writing { min-height: calc(100vh - 220px); }
+@media (max-width: 700px) { .journal-paper:fullscreen { padding: 28px 22px 70px; } }
+
+/* Journal library */
+.library-layout { position: relative; z-index: 1; width: min(1260px, calc(100% - 110px)); min-height: calc(100svh - 125px); margin: 125px auto 0; padding-bottom: 150px; }
+.library-header { display: flex; justify-content: space-between; align-items: center; gap: 30px; }
+.library-title { display: flex; align-items: center; gap: 18px; min-width: 0; }
+.library-title h1 { position: relative; margin: 0; color: var(--burgundy); white-space: nowrap; font: 600 clamp(47px, 4vw, 64px)/1 'Cormorant Garamond', Georgia, serif; letter-spacing: -.03em; }
+.library-actions { display: flex; align-items: center; gap: 22px; flex: none; }
+.new-journal-button { display: inline-flex; align-items: center; justify-content: center; gap: 12px; min-height: 56px; padding: 0 27px; border-radius: 30px; background: #c8432c; color: #fff9f0; box-shadow: 0 5px 12px #843c2720; font-size: 16px; white-space: nowrap; cursor: pointer; transition: background .2s ease; }
+.new-journal-button:hover:not(:disabled) { background: #ad3828; }
+.new-journal-button:disabled { opacity: .6; cursor: wait; }
+.library-entries { width: min(805px, 68%); padding-top: 52px; }
+.year-heading { display: flex; align-items: center; gap: 18px; }
+.year-heading h2 { flex: none; margin: 0; color: var(--burgundy); font: 600 39px/1.05 'Cormorant Garamond', Georgia, serif; }
+.year-heading span { flex: 1; height: 1px; background: #e5c4ac; }
+.library-year + .library-year { margin-top: 36px; }
+.library-month { margin-top: 22px; }
+.library-month h3 { display: flex; align-items: center; gap: 13px; margin: 0 0 12px; color: #9d2f21; font-size: 15px; font-weight: 600; letter-spacing: .13em; text-transform: uppercase; }
+.entry-list { display: grid; gap: 10px; }
+.entry-card { min-width: 0; min-height: 92px; display: flex; align-items: center; gap: 20px; padding: 13px 20px 13px 23px; border: 1px solid #eac7ac; border-radius: 20px; background: rgba(255, 248, 237, .83); color: inherit; text-decoration: none; transition: background .18s ease, border-color .18s ease; }
+.entry-card:hover { background: #fff5e7; border-color: #dca587; }
+.entry-date-badge { width: 60px; min-height: 59px; flex: none; display: flex; flex-direction: column; align-items: center; justify-content: center; border-radius: 13px; background: #fbd8bd; color: #641917; text-transform: uppercase; line-height: 1; }
+.entry-date-badge span { font-size: 13px; font-weight: 600; }
+.entry-date-badge strong { margin-top: 4px; font-size: 23px; font-weight: 600; }
+.entry-card-divider { align-self: stretch; width: 1px; flex: none; margin: 5px 0; background: #eacdb8; }
+.entry-card-copy { display: flex; flex: 1; min-width: 0; }
+.entry-card-copy strong { overflow: hidden; color: var(--burgundy); font: 600 29px/1.08 'Cormorant Garamond', Georgia, serif; text-overflow: ellipsis; white-space: nowrap; }
+.entry-chevron { width: 22px; height: 22px; flex: none; color: #cf4a31; }
+.library-filter { display: flex; align-items: baseline; justify-content: space-between; gap: 18px; margin-bottom: 25px; }
+.library-filter h2 { margin: 0; color: var(--burgundy); font: 600 30px/1.1 'Cormorant Garamond', Georgia, serif; }
+.library-filter button, .library-error button { flex: none; padding: 5px 0; background: none; color: #a53e2c; font-size: 14px; text-decoration: underline; text-underline-offset: 4px; cursor: pointer; }
+.library-message, .library-error, .legacy-date-explanation { color: #80675b; font-size: 15px; line-height: 1.6; }
+.legacy-date-explanation { margin: 12px 0 18px; }
+.library-empty { display: flex; min-height: 340px; flex-direction: column; align-items: center; justify-content: center; padding: 32px 16px; text-align: center; }
+.empty-flower { width: 44px; height: 44px; margin-bottom: 18px; color: #ce4c35; }
+.library-empty h2 { margin: 0; color: var(--burgundy); font: 600 38px/1.1 'Cormorant Garamond', Georgia, serif; }
+.library-empty p { margin: 12px 0 26px; color: #805f53; font-size: 16px; }
+.library-empty.filtered-empty .new-journal-button { margin-top: 25px; }
+.library-empty .new-journal-button { font-size: 15px; }
+.journal-date-prompt { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; color: #99503b; font-size: 12px; letter-spacing: .02em; text-transform: none; }
+.journal-date-prompt button { padding: 5px 9px; border-radius: 7px; color: #fff9f0; background: #bd5037; cursor: pointer; }
+.journal-date-prompt input { max-width: 150px; border: 1px solid #e5c4ac; border-radius: 7px; padding: 4px 6px; color: #692318; background: #fffaf2; font-size: 13px; }
+
+/* Calendar popover and date picker */
+.calendar-anchor { position: relative; }
+.calendar-trigger { display: grid; place-items: center; width: 58px; height: 58px; border: 1.5px solid #d55a3f; border-radius: 16px; color: #7a251c; background: #fbe1cf; box-shadow: 0 4px 10px #713c2520; cursor: pointer; transition: background .18s ease; }
+.calendar-trigger:hover, .calendar-trigger[aria-expanded="true"] { background: #f8d3bd; }
+.calendar-trigger svg { width: 28px; height: 28px; stroke-width: 1.8; }
+.calendar-backdrop { display: none; }
+.journal-calendar { position: absolute; z-index: 10; top: calc(100% + 19px); right: -227px; width: 425px; max-width: calc(100vw - 32px); overflow: visible; padding: 24px 24px 20px; border: 2px solid #fffaf2; border-radius: 25px; background: #fff1df; box-shadow: 0 10px 30px #7d50342c; color: var(--burgundy); }
+.journal-calendar::before { content: ''; position: absolute; top: -11px; right: 236px; width: 19px; height: 19px; border-top: 2px solid #d86b50; border-left: 2px solid #d86b50; background: #fff1df; transform: rotate(45deg); }
+.calendar-heading { position: relative; z-index: 1; display: flex; align-items: center; justify-content: space-between; gap: 5px; margin-bottom: 20px; }
+.calendar-heading button, .calendar-close-mobile { display: grid; place-items: center; width: 38px; height: 38px; flex: none; border-radius: 50%; color: #70251e; background: transparent; cursor: pointer; }
+.calendar-heading button:hover, .calendar-close-mobile:hover { background: #f8dfca; }
+.calendar-heading button svg { width: 21px; height: 21px; }
+.calendar-heading .calendar-month-label { display: block; width: auto; min-width: 0; height: auto; padding: 4px 8px; border-radius: 10px; font: 600 30px/1.1 'Cormorant Garamond', Georgia, serif; white-space: nowrap; }
+.calendar-grid { position: relative; z-index: 1; width: 100%; border-collapse: collapse; table-layout: fixed; }
+.calendar-grid thead { border-bottom: 1px solid #edd5c2; }
+.calendar-grid th { padding: 9px 0 12px; color: #59352d; font-size: 11px; font-weight: 600; text-transform: uppercase; }
+.calendar-grid td { height: 49px; padding: 2px 0; text-align: center; }
+.calendar-day { position: relative; display: inline-flex; align-items: center; justify-content: center; width: 43px; height: 43px; border: 1px solid transparent; border-radius: 50%; background: transparent; color: #24312e; font: 600 19px/1 'Cormorant Garamond', Georgia, serif; cursor: pointer; }
+.calendar-day:hover { background: #fae0cc; }
+.calendar-day.is-outside { color: #b1a79a; }
+.calendar-day.is-today { border-color: #d96a4c; }
+.calendar-day.is-selected { border-color: #cd5138; background: #f9d5b8; color: #531814; }
+.calendar-dot { display: inline-block; width: 7px; height: 7px; flex: none; border-radius: 50%; background: #df4e32; }
+.calendar-day .calendar-dot { position: absolute; bottom: 4px; left: 50%; transform: translateX(-50%); }
+.calendar-legend { position: relative; z-index: 1; display: flex; align-items: center; gap: 9px; margin: 19px 8px 0; color: #4c4a40; font-size: 12px; }
+.calendar-decoration { position: absolute; top: 5px; right: 2px; width: 76px; height: 76px; opacity: .9; pointer-events: none; }
+.calendar-hills { position: absolute; bottom: 0; left: 0; right: 0; height: 55px; overflow: hidden; border-radius: 0 0 23px 23px; pointer-events: none; }
+.calendar-hills svg { width: 100%; height: 100%; }
+.calendar-close-mobile { display: none; }
+.calendar-picker { position: relative; z-index: 1; display: grid; gap: 15px; padding: 12px 8px 28px; }
+.calendar-picker label { display: grid; gap: 6px; color: #754b3e; font-size: 13px; }
+.calendar-picker input, .calendar-picker select { width: 100%; min-height: 42px; padding: 8px 10px; border: 1px solid #e4c4aa; border-radius: 9px; color: #55261e; background: #fff9f0; }
+.calendar-picker button { justify-self: start; padding: 10px 17px; border-radius: 20px; color: #fff; background: #c8432c; cursor: pointer; }
+.calendar-picker p { margin: 0; color: #9b3526; font-size: 13px; }
+.entry-card:focus-visible, .new-journal-button:focus-visible, .calendar-trigger:focus-visible, .journal-calendar button:focus-visible, .journal-calendar input:focus-visible, .journal-calendar select:focus-visible, .library-filter button:focus-visible, .journal-date-prompt input:focus-visible, .journal-date-prompt button:focus-visible { outline: 3px solid #b95943; outline-offset: 2px; }
+@media (max-width: 1100px) and (min-width: 701px) {
+  .library-layout { width: calc(100% - 64px); margin-top: 105px; }
+  .library-entries { width: min(805px, 100%); }
+}
+@media (max-width: 700px) {
+  .library-layout { width: calc(100% - 36px); min-height: calc(100svh - 176px); margin-top: 50px; padding-bottom: 110px; }
+  .library-header { flex-wrap: wrap; gap: 25px; }
+  .library-title { gap: 11px; }
+  .library-title h1 { font-size: 46px; }
+  .library-actions { width: 100%; justify-content: flex-end; gap: 12px; }
+  .calendar-trigger { width: 50px; height: 50px; border-radius: 14px; }
+  .new-journal-button { min-height: 50px; padding: 0 21px; font-size: 15px; }
+  .library-entries { width: 100%; padding-top: 39px; }
+  .year-heading h2 { font-size: 34px; }
+  .entry-card { gap: 11px; min-height: 84px; padding: 11px; border-radius: 16px; }
+  .entry-date-badge { width: 48px; min-height: 54px; }
+  .entry-date-badge span { font-size: 11px; }
+  .entry-date-badge strong { font-size: 20px; }
+  .entry-card-copy strong { font-size: 23px; white-space: normal; }
+  .entry-chevron { width: 18px; }
+  .library-filter { align-items: flex-start; flex-direction: column; gap: 5px; }
+  .library-filter h2 { font-size: 27px; }
+  .calendar-backdrop { display: block; position: fixed; z-index: 10; inset: 0; background: #3e241e66; }
+  .journal-calendar { position: fixed; z-index: 11; top: auto; right: 0; bottom: 0; left: 0; width: 100%; max-width: none; max-height: min(90svh, 620px); overflow-y: auto; padding: 30px 22px max(25px, env(safe-area-inset-bottom)); border-radius: 25px 25px 0 0; }
+  .journal-calendar::before { display: none; }
+  .calendar-heading { margin-right: 25px; }
+  .calendar-heading .calendar-month-label { font-size: 27px; }
+  .calendar-close-mobile { display: grid; position: absolute; z-index: 3; top: 10px; right: 10px; }
+}
+
+.library-page .branch-art img { -webkit-mask-image: radial-gradient(ellipse 52% 17% at 15% 0%, #000 0%, #000 42%, transparent 100%); mask-image: radial-gradient(ellipse 52% 17% at 15% 0%, #000 0%, #000 42%, transparent 100%); }
+@media (max-width: 700px) {
+  .library-page .branch-art { -webkit-mask-image: linear-gradient(#000 0, transparent 45px); mask-image: linear-gradient(#000 0, transparent 45px); }
+  .journal-shell:has(.journal-calendar) .library-page { z-index: 3; }
+  body:has(.journal-calendar) { overflow: hidden; }
+  .calendar-close-mobile { background: #fff1dfcc; }
+}
+.library-page { display: flow-root; }
+@media (max-width: 700px) {
+  .journal-date:has(.journal-date-prompt) { padding-top: 45px; }
+}
+@media (max-width: 360px) {
+  .journal-calendar { padding-left: 10px; padding-right: 10px; }
+  .calendar-day { width: min(43px, 100%); }
+}
+
+/* Center the welcome in the full journal area, independently of the entry list width. */
+.library-entries.is-empty { width: 100%; padding-top: 0; }
+.library-entries.is-empty .library-empty { min-height: max(340px, calc(100svh - 335px)); }
+@media (max-width: 700px) {
+  .library-entries.is-empty .library-empty { min-height: max(300px, calc(100svh - 408px)); }
+}
