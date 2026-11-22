@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 160">
+  <rect width="160" height="160" rx="22" fill="#fff3e3"/>
+  <g fill="#cb4935">
+    <path id="petal" d="M76 75C48 77 20 67 10 49 1 33 3 15 16 8 32 0 54 8 67 24 76 35 78 51 76 75Z"/>
+    <use href="#petal" transform="translate(160 0) scale(-1 1)"/>
+    <use href="#petal" transform="translate(0 160) scale(1 -1)"/>
+    <use href="#petal" transform="translate(160 160) scale(-1 -1)"/>
+  </g>
+</svg>
