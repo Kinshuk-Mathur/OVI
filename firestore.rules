@@ -1,0 +1,74 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function owner(uid) { return request.auth != null && request.auth.uid == uid; }
+    function sealed(value, maxSize) {
+      return value is map && value.keys().hasOnly(['iv', 'ciphertext'])
+        && value.keys().hasAll(['iv', 'ciphertext']) && value.iv is string
+        && value.iv.size() == 16 && value.ciphertext is string
+        && value.ciphertext.size() >= 22 && value.ciphertext.size() <= maxSize;
+    }
+    function encrypted(value) {
+      return value is map && value.keys().hasOnly(['version', 'wrappedKey', 'payload'])
+        && value.keys().hasAll(['version', 'wrappedKey', 'payload']) && value.version == 1
+        && sealed(value.wrappedKey, 128) && sealed(value.payload, 800000);
+    }
+    function vault(value) {
+      return value.keys().hasOnly(['version', 'revision', 'kdf', 'passwordWrappedKey', 'recoveryWrappedKey'])
+        && value.keys().hasAll(['version', 'revision', 'kdf', 'passwordWrappedKey', 'recoveryWrappedKey'])
+        && value.version == 1 && value.revision is int && value.revision > 0
+        && value.kdf is map && value.kdf.keys().hasOnly(['name', 'salt', 'memoryKiB', 'iterations', 'parallelism'])
+        && value.kdf.keys().hasAll(['name', 'salt', 'memoryKiB', 'iterations', 'parallelism'])
+        && value.kdf.name == 'argon2id' && value.kdf.salt is string && value.kdf.salt.size() == 22
+        && value.kdf.memoryKiB == 65536 && value.kdf.iterations == 3 && value.kdf.parallelism == 1
+        && sealed(value.passwordWrappedKey, 128) && sealed(value.recoveryWrappedKey, 128);
+    }
+    match /users/{uid}/account/profile {
+      allow read: if owner(uid);
+      allow create: if owner(uid) && request.resource.data.keys().hasOnly(['uid', 'displayName', 'createdAt', 'preferences', 'vaultInitialized'])
+        && request.resource.data.keys().hasAll(['uid', 'displayName', 'createdAt', 'preferences', 'vaultInitialized'])
+        && request.resource.data.uid == uid && request.resource.data.displayName is string && request.resource.data.displayName.size() <= 160
+        && request.resource.data.createdAt == request.time && request.resource.data.preferences is map
+        && request.resource.data.preferences.size() == 0 && request.resource.data.vaultInitialized == true;
+      allow update, delete: if false;
+    }
+    match /users/{uid}/conversations/{conversationId} {
+      allow read: if owner(uid);
+      allow create: if owner(uid) && request.resource.data.keys().hasOnly(['version', 'encrypted', 'createdAt'])
+        && request.resource.data.keys().hasAll(['version', 'encrypted', 'createdAt'])
+        && request.resource.data.version == 1 && encrypted(request.resource.data.encrypted) && request.resource.data.createdAt == request.time;
+      allow update, delete: if false;
+      match /messages/{messageId} {
+        allow read: if owner(uid);
+        allow create: if owner(uid) && request.resource.data.keys().hasOnly(['version', 'encrypted', 'createdAt'])
+          && request.resource.data.keys().hasAll(['version', 'encrypted', 'createdAt'])
+          && request.resource.data.version == 1 && encrypted(request.resource.data.encrypted) && request.resource.data.createdAt == request.time;
+        allow update, delete: if false;
+      }
+    }
+    match /users/{uid}/account/vault {
+      allow read: if owner(uid);
+      allow create: if owner(uid) && vault(request.resource.data) && request.resource.data.revision == 1;
+      allow update: if owner(uid) && vault(request.resource.data)
+        && request.resource.data.revision == resource.data.revision + 1
+        && request.resource.data.recoveryWrappedKey == resource.data.recoveryWrappedKey;
+      allow delete: if false;
+    }
+    match /users/{uid}/journals/{journalId} {
+      allow read: if owner(uid);
+      allow create: if owner(uid) && journalId.size() <= 128 && validJournal(request.resource.data)
+        && request.resource.data.revision == 1 && request.resource.data.createdAt == request.time;
+      allow update: if owner(uid) && validJournal(request.resource.data)
+        && request.resource.data.revision == resource.data.revision + 1
+        && request.resource.data.createdAt == resource.data.createdAt;
+      allow delete: if false;
+      function validJournal(value) {
+        return value.keys().hasOnly(['version', 'revision', 'encrypted', 'createdAt', 'updatedAt'])
+          && value.keys().hasAll(['version', 'revision', 'encrypted', 'createdAt', 'updatedAt'])
+          && value.version == 1 && value.revision is int && value.revision > 0
+          && value.createdAt is timestamp && value.updatedAt == request.time && encrypted(value.encrypted);
+      }
+    }
+    match /{document=**} { allow read, write: if false; }
+  }
+}

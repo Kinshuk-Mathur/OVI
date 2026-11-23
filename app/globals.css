@@ -336,3 +336,33 @@ button { border: 0; }
 @media (max-width: 700px) {
   .library-entries.is-empty .library-empty { min-height: max(300px, calc(100svh - 408px)); }
 }
+
+/* Vault access follows OVI's existing paper and terracotta palette. */
+.vault-shell { min-height: 100svh; display: grid; place-items: center; padding: 32px 20px; background: var(--paper); }
+.vault-card { width: min(100%, 470px); padding: 42px; border: 1px solid #e9c6aa; border-radius: 28px; background: #fff8ed; box-shadow: 0 12px 40px rgba(80, 44, 25, .06); }
+.vault-card .ovi-logo { width: 120px; margin-bottom: 20px; }
+.vault-card h1 { margin: 12px 0; font: 600 44px/1.05 'Cormorant Garamond', Georgia, serif; color: var(--burgundy); }
+.vault-card p { color: #795751; font-size: 14px; line-height: 1.6; }
+.vault-card form { display: grid; gap: 17px; margin-top: 24px; }
+.vault-card label:not(.vault-checkbox) { display: grid; gap: 7px; font-size: 14px; font-weight: 600; }
+.vault-card input:not([type=checkbox]) { width: 100%; padding: 12px 13px; border: 1px solid #dfc0a8; border-radius: 10px; background: #fffdf9; color: var(--burgundy); font: inherit; }
+.vault-card input:focus-visible, .vault-card button:focus-visible { outline: 3px solid #ce8069; outline-offset: 2px; }
+.vault-primary { width: 100%; margin-top: 18px; padding: 14px 20px; color: white; background: #bd4935; border-radius: 999px; cursor: pointer; font-weight: 600; }
+.vault-primary:disabled { opacity: .5; cursor: not-allowed; }
+.vault-link { display: block; margin: 18px 0 0; padding: 0; background: transparent; color: #963e30; text-align: left; text-decoration: underline; cursor: pointer; }
+.vault-checkbox { display: flex; gap: 10px; align-items: flex-start; margin-top: 20px; font-size: 14px; }
+.recovery-key { display: block; overflow-wrap: anywhere; padding: 14px; border: 1px solid #ead4c0; border-radius: 10px; background: #fffdf9; }
+.vault-card .vault-error { color: #a32222; }
+@media (max-width: 500px) { .vault-card { padding: 28px; } .vault-card h1 { font-size: 38px; } }
+.journal-save-status { min-height: 18px; margin-top: 10px; color: #9a7162; font-size: 12px; }
+.vault-lock-button { background: transparent; color: #795046; cursor: pointer; font-size: 13px; text-decoration: underline; }
+.entry-card-copy small { display: block; margin-top: 4px; color: #a2543c; font-size: 12px; font-weight: 400; }
+.legacy-import { margin: 16px 0; color: #795751; font-size: 13px; line-height: 1.6; }
+.legacy-import button { padding: 0; color: #963e30; background: transparent; text-decoration: underline; cursor: pointer; }
+.legacy-import p { margin: 5px 0; }
+.sidebar-save-notice { margin: 0 12px; color: #9a3f2b; font-size: 12px; }
+.conflict-action { padding: 5px 20px 12px; color: #9a3f2b; font-size: 12px; }
+.conflict-action button { padding: 0; color: inherit; background: transparent; text-decoration: underline; cursor: pointer; }
+.conflict-action span { display: block; margin-top: 5px; }
+.entry-card-copy { flex-direction: column; }
+.entry-card-copy .entry-preview { overflow: hidden; color: #80675b; text-overflow: ellipsis; white-space: nowrap; }

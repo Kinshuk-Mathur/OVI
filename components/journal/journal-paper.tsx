@@ -11,19 +11,29 @@ import { CalendarDays, ImagePlus, Maximize2, MessageCircle, Minimize2, MoreHoriz
 import { JournalImage } from "./journal-image";
 import { FormattingMenu } from "./formatting-menu";
 import { NodeSelection } from "@tiptap/pm/state";
-import { DEFAULT_JOURNAL_TITLE, getJournalDraft, saveJournalDraft, saveJournalPhoto, type JournalDraft } from "@/lib/journal-storage";
+import { DEFAULT_JOURNAL_TITLE, type JournalDraft } from "@/lib/journal-storage";
+import { isMeaningfulDraft } from "@/lib/journal-content";
+import { useJournalWorkspace } from "./journal-provider";
+import { useVault } from "@/components/auth/vault-provider";
+import { saveEncryptedPhoto } from "@/lib/journal/media";
+import type { JournalHandle } from "@/lib/journal/workspace";
 import { formatEntryDate, localDateKey, parseLocalDate } from "@/lib/journal-dates";
 
 const MAX_PHOTO_SIZE = 12 * 1024 * 1024;
 const PHOTO_TYPES = new Set(["image/jpeg", "image/png", "image/webp", "image/gif"]);
-type SaveStatus = "loading" | "saved" | "unsaved" | "saving" | "error";
+type SaveStatus = "loading" | "empty" | "saved" | "unsaved" | "saving" | "error";
 
 export function JournalPaper({ entryId, isNew, requestedDate }: { entryId: string; isNew: boolean; requestedDate?: string }) {
   const router = useRouter();
+  const workspace = useJournalWorkspace();
+  const { session } = useVault();
+  const handleRef = useRef<JournalHandle | null>(null);
+  const [syncStatus, setSyncStatus] = useState("");
   const [status, setStatus] = useState<SaveStatus>("loading");
   const [notice, setNotice] = useState("");
   const [menuOpen, setMenuOpen] = useState(false);
   const [importing, setImporting] = useState(false);
+  const importingRef = useRef(false);
   const [date, setDate] = useState("");
   const [fullscreen, setFullscreen] = useState(false);
   const paperRef = useRef<HTMLElement>(null);
@@ -101,8 +111,9 @@ export function JournalPaper({ entryId, isNew, requestedDate }: { entryId: strin
     if (!dirtyRef.current) { try { await saveQueue.current; return !dirtyRef.current; } catch { return false; } }
     const revision = revisionRef.current;
     const draft: JournalDraft = { ...entryRef.current, title: titleValueRef.current, content: currentEditor.getJSON(), updatedAt: Date.now() };
+    if (isNew && !handleRef.current?.revision && !isMeaningfulDraft(draft)) { dirtyRef.current = false; return true; }
     if (mountedRef.current) setStatus("saving");
-    const write = saveQueue.current.catch(() => {}).then(() => saveJournalDraft(draft));
+    const write = saveQueue.current.catch(() => {}).then(async () => { if (!handleRef.current) throw new Error("Journal unavailable."); await handleRef.current.save(draft); });
     saveQueue.current = write;
     try {
       await write;
@@ -116,7 +127,7 @@ export function JournalPaper({ entryId, isNew, requestedDate }: { entryId: strin
       if (mountedRef.current) { setStatus("error"); setNotice("Your draft could not be saved on this device. Please check browser storage and try again."); }
       return false;
     }
-  }, []);
+  }, [isNew]);
 
   const scheduleSave = useCallback(() => {
     if (!loadedRef.current) return;
@@ -124,15 +135,17 @@ export function JournalPaper({ entryId, isNew, requestedDate }: { entryId: strin
     revisionRef.current += 1;
     setStatus("unsaved");
     if (timerRef.current) clearTimeout(timerRef.current);
-    timerRef.current = setTimeout(() => { void saveNow(); }, 800);
+    timerRef.current = setTimeout(() => { void saveNow(); }, 250);
   }, [saveNow]);
   scheduleRef.current = scheduleSave;
 
   useEffect(() => {
     if (!editor) return;
     let active = true;
-    getJournalDraft(entryId).then((draft) => {
+    workspace.open(entryId, isNew).then(({ draft, handle }) => {
       if (!active) return;
+      handleRef.current = handle;
+      setSyncStatus(workspace.status(handle));
       if (!draft && !isNew) {
         setStatus("error");
         setNotice("This journal could not be found on this device.");
@@ -140,42 +153,53 @@ export function JournalPaper({ entryId, isNew, requestedDate }: { entryId: strin
       }
       const now = Date.now();
       const entryDate = draft ? draft.entryDate : (requestedDate && parseLocalDate(requestedDate) ? requestedDate : localDateKey(new Date(now)));
-      entryRef.current = { id: entryId, entryDate, createdAt: draft ? draft.createdAt : now };
+      entryRef.current = { id: handle.journalId, entryDate, createdAt: draft ? draft.createdAt : now };
       setDate(entryDate ? formatEntryDate(entryDate, { weekday: "short", month: "short", day: "numeric" }) : "");
       titleValueRef.current = draft?.title ?? DEFAULT_JOURNAL_TITLE;
       if (titleRef.current) titleRef.current.value = titleValueRef.current;
       if (draft?.content) editor.commands.setContent(draft.content, false);
       loadedRef.current = true;
       editor.setEditable(true, false);
-      setStatus(draft ? "saved" : "unsaved");
+      setStatus(draft ? "saved" : "empty");
       if (isNew && window.matchMedia("(pointer: fine)").matches) editor.commands.focus("start");
     }).catch(() => {
       if (!active) return;
       setStatus("error");
-      setNotice("Your journal could not be opened from local storage. Please check browser storage and reload to protect your draft.");
+      setNotice("This journal could not be opened. If there are different versions, choose one from My Journal. Your local copies are preserved.");
     });
     return () => { active = false; };
-  }, [editor, entryId, isNew, requestedDate]);
+  }, [editor, entryId, isNew, requestedDate, workspace]);
 
   useEffect(() => {
     mountedRef.current = true;
     const beforeUnload = (event: BeforeUnloadEvent) => {
-      if (!dirtyRef.current) return;
-      void saveNow();
+      if (!dirtyRef.current && !importingRef.current) return;
+      if (dirtyRef.current) void saveNow();
       event.preventDefault();
       event.returnValue = "";
     };
     const onPageHide = () => { if (dirtyRef.current) void saveNow(); };
+    const onVisibility = () => { if (document.visibilityState === "hidden" && dirtyRef.current) void saveNow(); };
+    const flush = (event: Event) => { const detail = (event as CustomEvent<{ promises: Promise<boolean>[] }>).detail; if (!detail?.promises) return; detail.promises.push((async () => { if (importingRef.current) return false; while (dirtyRef.current) if (!await saveNow()) return false; return true; })()); };
+    const sync = () => { if (handleRef.current) setSyncStatus(workspace.status(handleRef.current)); };
+    window.addEventListener("ovi:flush", flush);
+    window.addEventListener("ovi:journal-change", sync);
+    document.addEventListener("visibilitychange", onVisibility);
     window.addEventListener("beforeunload", beforeUnload);
     window.addEventListener("pagehide", onPageHide);
+    window.addEventListener("popstate", onPageHide);
     return () => {
       if (timerRef.current) clearTimeout(timerRef.current);
       if (dirtyRef.current) void saveNow();
       mountedRef.current = false;
       window.removeEventListener("beforeunload", beforeUnload);
       window.removeEventListener("pagehide", onPageHide);
+      window.removeEventListener("popstate", onPageHide);
+      window.removeEventListener("ovi:flush", flush);
+      window.removeEventListener("ovi:journal-change", sync);
+      document.removeEventListener("visibilitychange", onVisibility);
     };
-  }, [saveNow]);
+  }, [saveNow, workspace, entryId]);
 
   const importPhotos = useCallback(async (files: File[], position?: number) => {
     const currentEditor = editorRef.current;
@@ -184,20 +208,21 @@ export function JournalPaper({ entryId, isNew, requestedDate }: { entryId: strin
     if (valid.length !== files.length) setNotice("Use JPEG, PNG, WebP, or GIF photos up to 12 MB each.");
     else setNotice("");
     if (!valid.length) return;
-    setImporting(true);
+    importingRef.current = true; setImporting(true);
     try {
       const photos = await Promise.all(valid.map(async (file) => {
         const imageId = crypto.randomUUID();
-        await saveJournalPhoto(imageId, file);
-        return { type: "journalImage", attrs: { imageId, alt: "Journal photograph", width: 280, offset: 0 } };
+        if (!handleRef.current) throw new Error("Journal unavailable.");
+        await saveEncryptedPhoto(session.user.uid, session.masterKey, handleRef.current.journalId, imageId, file);
+        return { type: "journalImage", attrs: { imageId, journalId: handleRef.current.journalId, alt: "Journal photograph", width: 280, offset: 0 } };
       }));
       if (currentEditor.isDestroyed) return;
       const insertAt = Math.min(position ?? currentEditor.state.selection.from, currentEditor.state.doc.content.size);
       currentEditor.chain().focus().insertContentAt(insertAt, [...photos, { type: "paragraph" }]).run();
     } catch {
       setNotice("The photo could not be saved on this device. Please check browser storage and try again.");
-    } finally { if (mountedRef.current) setImporting(false); }
-  }, []);
+    } finally { importingRef.current = false; if (mountedRef.current) setImporting(false); }
+  }, [session.user.uid, session.masterKey]);
   importRef.current = (files, position) => { void importPhotos(files, position); };
 
   useEffect(() => {
@@ -237,8 +262,6 @@ export function JournalPaper({ entryId, isNew, requestedDate }: { entryId: strin
   }
 
   async function talkAboutEntry() {
-    // Persist even a new, untouched entry before passing its local reference.
-    if (!dirtyRef.current) { dirtyRef.current = true; revisionRef.current += 1; }
     while (dirtyRef.current) {
       if (!await saveNow()) return;
     }
@@ -247,7 +270,7 @@ export function JournalPaper({ entryId, isNew, requestedDate }: { entryId: strin
 
   return (
     <div className="journal-layout">
-      <section ref={paperRef} className="journal-paper" aria-label="Journal page" onClick={focusWritingArea}>
+      <section ref={paperRef} className="journal-paper" aria-label="Journal page" onClick={focusWritingArea} onBlur={(event) => { if (!event.currentTarget.contains(event.relatedTarget) && dirtyRef.current) void saveNow(); }}>
         <header className="journal-header">
           <div className="journal-date"><CalendarDays size={19} aria-hidden="true" />{date ? <time>{date}</time> : loadedRef.current ? <div className="journal-date-prompt"><label htmlFor="legacy-entry-date">Set this journal’s original date</label><input ref={dateInputRef} id="legacy-entry-date" type="date" aria-label="Set original journal date" /><button type="button" onClick={() => { const value = dateInputRef.current?.value || ""; if (!parseLocalDate(value) || !entryRef.current) { setNotice("Choose a valid original date for this journal."); return; } entryRef.current = { ...entryRef.current, entryDate: value }; setNotice(""); setDate(formatEntryDate(value, { weekday: "short", month: "short", day: "numeric" })); scheduleSave(); }}>Save date</button></div> : null}</div>
           <div className="journal-header-actions">
@@ -263,7 +286,7 @@ export function JournalPaper({ entryId, isNew, requestedDate }: { entryId: strin
           <input ref={fileRef} type="file" accept="image/jpeg,image/png,image/webp,image/gif" multiple className="sr-only" tabIndex={-1} onChange={(event) => { void importPhotos(Array.from(event.target.files ?? []), selectionRef.current); event.target.value = ""; }} />
           <label className="sr-only" htmlFor="journal-title">Journal title</label>
           <div className="journal-title-wrap"><input ref={titleRef} id="journal-title" className="journal-title" defaultValue={DEFAULT_JOURNAL_TITLE} placeholder="Give this entry a title" disabled={status === "loading" || !loadedRef.current} onChange={(event) => { titleValueRef.current = event.target.value; scheduleSave(); }} /></div>
-          <div className="sr-only" role="status" aria-live="polite">{status === "loading" ? "Opening journal…" : importing ? "Adding photo…" : ""}</div>
+          <div className="journal-save-status" role="status" aria-live="polite">{status === "loading" ? "Opening journal…" : importing ? "Adding photo…" : status === "saving" || status === "unsaved" ? "Saving…" : status === "error" ? "Unable to save" : syncStatus}</div>
         </header>
         {editor && <FormattingMenu editor={editor} />}
         <EditorContent editor={editor} className="journal-editor" onClick={(event) => { if (event.target === event.currentTarget) editor?.commands.focus("end"); }} />

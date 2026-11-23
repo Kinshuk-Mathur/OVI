@@ -6,9 +6,12 @@ import { ArrowDown, ArrowLeft, ArrowRight, ArrowUp, GripVertical, Minus, Plus, T
 import { Fragment } from "@tiptap/pm/model";
 import { NodeSelection } from "@tiptap/pm/state";
 import { useEffect, useRef, useState } from "react";
-import { getJournalPhoto } from "@/lib/journal-storage";
+import { getEncryptedPhoto } from "@/lib/journal/media";
+import { useVault } from "@/components/auth/vault-provider";
 
 function JournalImageView({ node, updateAttributes, deleteNode, editor, getPos }: NodeViewProps) {
+  const { session } = useVault();
+  const journalId = node.attrs.journalId as string;
   const [source, setSource] = useState<string>();
   const [missing, setMissing] = useState(false);
   const [active, setActive] = useState(false);
@@ -21,14 +24,15 @@ function JournalImageView({ node, updateAttributes, deleteNode, editor, getPos }
     let active = true;
     let objectUrl: string | undefined;
     setMissing(false);
-    getJournalPhoto(imageId).then((photo) => {
+    if (!journalId) { setMissing(true); return; }
+    getEncryptedPhoto(session.user.uid, session.masterKey, journalId, imageId).then((photo) => {
       if (!active) return;
       if (!photo) { setMissing(true); return; }
       objectUrl = URL.createObjectURL(photo);
       setSource(objectUrl);
     }).catch(() => { if (active) setMissing(true); });
     return () => { active = false; if (objectUrl) URL.revokeObjectURL(objectUrl); };
-  }, [imageId]);
+  }, [imageId, journalId, session.user.uid, session.masterKey]);
 
   useEffect(() => {
     function dismissOutside(event: PointerEvent) {
@@ -92,7 +96,7 @@ export const JournalImage = Node.create({
   atom: true,
   draggable: true,
   addAttributes() {
-    return { imageId: { default: null }, alt: { default: "Journal photograph" }, width: { default: 360 }, offset: { default: 0 }, note: { default: "" } };
+    return { imageId: { default: null }, journalId: { default: null }, alt: { default: "Journal photograph" }, width: { default: 360 }, offset: { default: 0 }, note: { default: "" } };
   },
   parseHTML() { return [{ tag: "figure[data-journal-image]" }]; },
   renderHTML({ HTMLAttributes }) { return ["figure", mergeAttributes(HTMLAttributes, { "data-journal-image": "" })]; },

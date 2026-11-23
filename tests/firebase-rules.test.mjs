@@ -1,0 +1,58 @@
+import { readFile } from 'node:fs/promises';
+import { after, before, test } from 'node:test';
+import { assertFails, assertSucceeds, initializeTestEnvironment } from '@firebase/rules-unit-testing';
+import { doc, getDoc, setDoc, updateDoc, deleteDoc, serverTimestamp } from 'firebase/firestore';
+import { ref, uploadBytes, getBytes, deleteObject } from 'firebase/storage';
+
+let env;
+const sealed = { iv: 'abcdefghijklmnop', ciphertext: 'a'.repeat(64) };
+const vault = { version: 1, revision: 1, kdf: { name: 'argon2id', salt: 'a'.repeat(22), memoryKiB: 65536, iterations: 3, parallelism: 1 }, passwordWrappedKey: sealed, recoveryWrappedKey: sealed };
+const encrypted = { version: 1, wrappedKey: sealed, payload: sealed };
+before(async () => {
+  env = await initializeTestEnvironment({ projectId: 'demo-ovi', firestore: { rules: await readFile('firestore.rules', 'utf8') }, storage: { rules: await readFile('storage.rules', 'utf8') } });
+});
+after(async () => { await env?.cleanup(); });
+test('vault and journal rules enforce ownership, shapes, revisions, and deletion denial', async () => {
+  const a = env.authenticatedContext('alice').firestore(), b = env.authenticatedContext('bob').firestore(), anon = env.unauthenticatedContext().firestore();
+  const vaultA = doc(a, 'users/alice/account/vault');
+  await assertSucceeds(setDoc(vaultA, vault));
+  await assertFails(getDoc(doc(b, 'users/alice/account/vault')));
+  await assertFails(getDoc(doc(anon, 'users/alice/account/vault')));
+  await assertFails(updateDoc(vaultA, { revision: 2, recoveryWrappedKey: { ...sealed, ciphertext: 'b'.repeat(64) } }));
+  await assertSucceeds(updateDoc(vaultA, { revision: 2, passwordWrappedKey: { ...sealed, ciphertext: 'c'.repeat(64) } }));
+  await assertFails(deleteDoc(vaultA));
+  await assertFails(setDoc(doc(a, 'users/alice/account/invalid'), vault));
+  await assertFails(setDoc(doc(a, 'users/bob/account/vault'), vault));
+  const profile = doc(a, 'users/alice/account/profile');
+  await assertSucceeds(setDoc(profile, { uid: 'alice', displayName: 'Alice', createdAt: serverTimestamp(), preferences: {}, vaultInitialized: true }));
+  await assertFails(getDoc(doc(b, 'users/alice/account/profile')));
+  await assertFails(updateDoc(profile, { uid: 'bob' }));
+  const conversation = doc(a, 'users/alice/conversations/c1');
+  const message = doc(a, 'users/alice/conversations/c1/messages/m1');
+  await assertSucceeds(setDoc(conversation, { version: 1, encrypted, createdAt: serverTimestamp() }));
+  await assertSucceeds(setDoc(message, { version: 1, encrypted, createdAt: serverTimestamp() }));
+  await assertFails(getDoc(doc(b, 'users/alice/conversations/c1/messages/m1')));
+  await assertFails(updateDoc(message, { text: 'plaintext' }));
+  await assertFails(deleteDoc(message));
+  const journal = doc(a, 'users/alice/journals/j1');
+  await assertSucceeds(setDoc(journal, { version: 1, revision: 1, encrypted, createdAt: serverTimestamp(), updatedAt: serverTimestamp() }));
+  await assertFails(getDoc(doc(b, 'users/alice/journals/j1')));
+  await assertFails(getDoc(doc(anon, 'users/alice/journals/j1')));
+  await assertFails(updateDoc(journal, { revision: 3, updatedAt: serverTimestamp() }));
+  await assertFails(updateDoc(journal, { revision: 2, updatedAt: serverTimestamp(), title: 'plaintext' }));
+  await assertSucceeds(updateDoc(journal, { revision: 2, updatedAt: serverTimestamp() }));
+  await assertFails(deleteDoc(journal));
+  await assertFails(setDoc(doc(a, 'users/bob/journals/j2'), { version: 1, revision: 1, encrypted, createdAt: serverTimestamp(), updatedAt: serverTimestamp() }));
+});
+test('media rules allow only owner-scoped immutable encrypted objects', async () => {
+  const a = env.authenticatedContext('alice').storage(), b = env.authenticatedContext('bob').storage(), anon = env.unauthenticatedContext().storage();
+  const path = 'users/alice/journal-media/j1/m1';
+  const object = ref(a, path), bytes = new Uint8Array([1, 2, 3]);
+  await assertFails(uploadBytes(ref(a, 'users/alice/journal-media/j1/bad'), bytes, { contentType: 'image/jpeg' }));
+  await assertSucceeds(uploadBytes(object, bytes, { contentType: 'application/octet-stream', customMetadata: { encryptionVersion: '1' } }));
+  await assertSucceeds(getBytes(object));
+  await assertFails(getBytes(ref(b, path)));
+  await assertFails(getBytes(ref(anon, path)));
+  await assertFails(uploadBytes(object, bytes, { contentType: 'application/octet-stream', customMetadata: { encryptionVersion: '1' } }));
+  await assertFails(deleteObject(object));
+});
