@@ -29,20 +29,8 @@ function groupByDate(entries: ListedJournal[]): YearGroup[] {
   return Array.from(years, ([year, months]) => ({ year, months: Array.from(months, ([month, entries]) => ({ month, entries })).sort((a, b) => b.month - a.month) })).sort((a, b) => b.year - a.year);
 }
 
-function preview(entry: ListedJournal): string {
-  const parts: string[] = [];
-  let length = 0;
-  function visit(node: typeof entry.content) {
-    if (length >= 180) return;
-    if (node.text) { parts.push(node.text); length += node.text.length; }
-    node.content?.forEach(visit);
-  }
-  visit(entry.content);
-  return parts.join(" ").replace(/\s+/g, " ").trim().slice(0, 180);
-}
 function EntryCard({ entry }: { entry: ListedJournal }) {
   const date = entry.entryDate ? parseLocalDate(entry.entryDate) : null;
-  const textPreview = preview(entry);
   const workspace = useJournalWorkspace();
   const router = useRouter();
   const [working, setWorking] = useState(false);
@@ -56,7 +44,7 @@ function EntryCard({ entry }: { entry: ListedJournal }) {
   return <div><Link href={`/journal/${encodeURIComponent(entry.id)}`} className="entry-card">
     <span className="entry-date-badge" aria-hidden="true">{date ? <><span>{formatEntryDate(entry.entryDate!, { month: "short" })}</span><strong>{String(date.getDate()).padStart(2, "0")}</strong></> : <><span>Date</span><strong>—</strong></>}</span>
     <span className="entry-card-divider" aria-hidden="true" />
-    <span className="entry-card-copy"><strong>{entry.title.trim() || DEFAULT_JOURNAL_TITLE}</strong>{textPreview && <small className="entry-preview">{textPreview}</small>}{entry.localCopy && <small>{entry.conflicted ? "Conflict — local copy preserved" : "Local copy"}</small>}</span>
+    <span className="entry-card-copy"><strong>{entry.title.trim() || DEFAULT_JOURNAL_TITLE}</strong>{entry.localCopy && <small>{entry.conflicted ? "Conflict — local copy preserved" : "Local copy"}</small>}</span>
     <ChevronRight className="entry-chevron" aria-hidden="true" />
   </Link>{entry.conflicted && <div className="conflict-action"><button type="button" disabled={working} onClick={() => void keepCopy()}>{working ? "Creating copy…" : "Save this version as a new journal"}</button>{error && <span role="alert">{error}</span>}</div>}</div>;
 }

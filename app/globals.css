@@ -365,4 +365,3 @@ button { border: 0; }
 .conflict-action button { padding: 0; color: inherit; background: transparent; text-decoration: underline; cursor: pointer; }
 .conflict-action span { display: block; margin-top: 5px; }
 .entry-card-copy { flex-direction: column; }
-.entry-card-copy .entry-preview { overflow: hidden; color: #80675b; text-overflow: ellipsis; white-space: nowrap; }
