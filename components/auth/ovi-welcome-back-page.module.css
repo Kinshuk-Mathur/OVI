@@ -1,8 +1,9 @@
-.welcome { padding-block: 36px; }
+.welcome { position: relative; padding-block: 110px 36px; }
 .content { max-width: 560px; }
 .heading { margin: 0; color: #450920; font: 600 clamp(54px, 4.8vw, 80px)/1.04 "Cormorant Garamond", Georgia, serif; letter-spacing: -.03em; }
-.brand { display: flex; justify-content: center; margin-top: clamp(20px, 2.4vw, 38px); }
-.brand :global(.ovi-logo) { width: min(100%, clamp(235px, 18vw, 302px)); }
+.name { display: block; margin-top: 10px; overflow-wrap: anywhere; }
+.brand { position: absolute; top: 32px; left: clamp(38px, 6vw, 100px); }
+.brand :global(.ovi-logo) { width: 120px; }
 .brand :global(.ovi-logo):focus-visible, .actions button:focus-visible, .primary:focus-visible, .passwordToggle:focus-visible { outline: 3px solid #a4402c; outline-offset: 4px; }
 .description { margin: clamp(20px, 2vw, 32px) 0 0; color: #754334; font: 400 clamp(18px, 1.4vw, 23px)/1.45 "DM Sans", sans-serif; }
 .form { width: min(100%, 510px); margin: clamp(26px, 2.7vw, 44px) auto 0; text-align: left; }
@@ -23,10 +24,11 @@
 .feedback { min-height: 24px; margin: 8px auto 0; max-width: 510px; color: #9a2922; font-size: 14px; line-height: 1.4; }
 .feedback p { margin: 0; }
 @media (max-width: 800px) {
-  .welcome { padding-top: max(32px, env(safe-area-inset-top)); padding-bottom: 30px; }
+  .welcome { padding-top: max(100px, calc(env(safe-area-inset-top) + 80px)); padding-bottom: 30px; }
   .heading { font-size: clamp(48px, 9vw, 68px); }
-  .brand { margin-top: 16px; }
-  .brand :global(.ovi-logo) { width: clamp(205px, 53vw, 270px); }
+  .name { margin-top: 6px; }
+  .brand { top: max(22px, env(safe-area-inset-top)); left: 28px; }
+  .brand :global(.ovi-logo) { width: 102px; }
   .description { margin-top: 16px; font-size: 17px; }
   .form { margin-top: 24px; }
   .passwordField input { min-height: 56px; }

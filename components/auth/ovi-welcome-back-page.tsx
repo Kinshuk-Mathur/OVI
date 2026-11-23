@@ -7,6 +7,7 @@ import layout from "./ovi-login-page.module.css";
 import styles from "./ovi-welcome-back-page.module.css";
 
 interface OviWelcomeBackPageProps {
+  displayName: string | null;
   password: string;
   onPasswordChange: (value: string) => void;
   onUnlock: (event: FormEvent<HTMLFormElement>) => void;
@@ -19,13 +20,14 @@ interface OviWelcomeBackPageProps {
   error: string;
 }
 
-export function OviWelcomeBackPage({ password, onPasswordChange, onUnlock, onRecover, onSwitchAccount, onRetry, isLoading, isRestoring, hasVault, error }: OviWelcomeBackPageProps) {
+export function OviWelcomeBackPage({ displayName, password, onPasswordChange, onUnlock, onRecover, onSwitchAccount, onRetry, isLoading, isRestoring, hasVault, error }: OviWelcomeBackPageProps) {
   const [showPassword, setShowPassword] = useState(false);
+  const name = displayName?.trim();
   return <main className={layout.page}>
     <section className={`${layout.welcome} ${styles.welcome}`} aria-labelledby="welcome-back-heading">
+      <div className={styles.brand}><OVILogo /></div>
       <div className={`${layout.content} ${styles.content}`}>
-        <h1 id="welcome-back-heading" className={styles.heading}>Welcome back.</h1>
-        <div className={styles.brand}><OVILogo /></div>
+        <h1 id="welcome-back-heading" className={styles.heading}>Welcome back{name ? <>,<span className={styles.name}>{name}</span></> : "."}</h1>
         <p className={styles.description}>Your thoughts are right where you left them.</p>
         <form className={styles.form} onSubmit={onUnlock}>
           <label htmlFor="vault-password">Your OVI password</label>
