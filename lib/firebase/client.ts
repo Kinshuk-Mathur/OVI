@@ -1,7 +1,7 @@
 "use client";
 
 import { getApps, initializeApp, type FirebaseApp } from "firebase/app";
-import { connectAuthEmulator, initializeAuth, GoogleAuthProvider, inMemoryPersistence, signInWithPopup, type Auth } from "firebase/auth";
+import { browserPopupRedirectResolver, connectAuthEmulator, initializeAuth, GoogleAuthProvider, inMemoryPersistence, signInWithPopup, type Auth } from "firebase/auth";
 import { connectFirestoreEmulator, getFirestore, type Firestore } from "firebase/firestore";
 import { connectStorageEmulator, getStorage, type FirebaseStorage } from "firebase/storage";
 
@@ -35,5 +35,5 @@ export function getFirebaseServices(): FirebaseServices {
 /** Popup is intentional: redirect cannot reliably retain memory-only auth state. */
 export async function signInWithGoogle() {
   const { auth } = getFirebaseServices();
-  return signInWithPopup(auth, new GoogleAuthProvider());
+  return signInWithPopup(auth, new GoogleAuthProvider(), browserPopupRedirectResolver);
 }
