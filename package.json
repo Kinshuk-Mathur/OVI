@@ -12,6 +12,7 @@
     "test:checkpoints": "node --import tsx --test tests/checkpoints.test.ts",
     "test:rules": "firebase emulators:exec --only firestore,storage --project demo-ovi \"node --test tests/firebase-rules.test.mjs\"",
     "test:emulators": "firebase emulators:exec --only auth,firestore,storage --project demo-ovi \"node --import tsx --test tests/firebase-rules.test.mjs tests/firebase-integration.test.ts tests/quota-integration.test.ts tests/provider-routes.test.ts\"",
+    "test:runtime": "node --no-experimental-require-module tests/runtime-startup.mjs",
     "test:ai": "node --import tsx --test tests/ai.test.ts",
     "test:browser": "firebase emulators:exec --only auth,firestore,storage --project demo-ovi \"node tests/browser-server.mjs\""
   },

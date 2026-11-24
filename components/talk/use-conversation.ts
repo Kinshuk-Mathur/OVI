@@ -1,12 +1,12 @@
 "use client";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useVault } from "../auth/vault-provider";
-import { api, jsonPost } from "@/lib/firebase/api-client";
+import { api, ApiError, jsonPost } from "@/lib/firebase/api-client";
 import {
   checkpointMessage,
-  currentThread,
   earlierMessages,
   pendingMessages,
+  pendingThreads,
   syncOutbox,
   watchMessages,
   type ChatMessage,
@@ -22,19 +22,19 @@ function merge(previous: ChatMessage[], incoming: ChatMessage[]) {
 }
 /** The unlocked view owns all plaintext and aborts inference on unmount. Sync retries replay
  * encrypted records only. They must never initiate a second generation or spend more quota. */
-export function useConversation() {
+export function useConversation(thread: string, fresh: boolean) {
   const {
       session: { user, masterKey },
     } = useVault(),
     uid = user.uid;
-  const [rows, setRows] = useState<ChatMessage[]>([]),
-    [thread, setThread] = useState("");
-  const [ready, setReady] = useState(false),
+  const [rows, setRows] = useState<ChatMessage[]>([]);
+  const [ready, setReady] = useState(fresh),
     [error, setError] = useState(""),
     [syncError, setSyncError] = useState("");
   const [partial, setPartial] = useState<string | null>(null),
     [working, setWorking] = useState(false);
   const [journal, setJournal] = useState(() => selectedJournal(masterKey));
+  const [retryable, setRetryable] = useState(false);
   const [more, setMore] = useState(false);
   const cursor = useRef<PageCursor>(null),
     paged = useRef(false),
@@ -56,19 +56,16 @@ export function useConversation() {
     mounted.current = true;
     let active = true,
       stop = () => {},
-      id = "",
       retry: ReturnType<typeof setTimeout>;
     const restore = async () => {
       try {
-        id = await currentThread(uid);
-        const pending = await pendingMessages(uid, masterKey, id);
+        const pending = await pendingMessages(uid, masterKey, thread);
         if (!active) return;
-        setThread(id);
         setRows((old) => merge(old, pending));
         stop = watchMessages(
           uid,
           masterKey,
-          id,
+          thread,
           (page) => {
             if (!active) return;
             setRows((old) => merge(old, page.rows));
@@ -83,7 +80,6 @@ export function useConversation() {
               setSyncError("Your saved conversation could not be loaded. Reopen Talk to OVI to retry.");
           },
         );
-        void sync(id);
       } catch {
         if (active) {
           setSyncError("Reconnecting to your encrypted conversation…");
@@ -92,9 +88,25 @@ export function useConversation() {
       }
     };
     void restore();
-    const retrySync = () => {
-      if (id) void sync(id);
+    // A fresh page no longer selects yesterday's thread. Continue delivering its queued
+    // ciphertext on reconnect, without loading that conversation into the new chat.
+    let replaying = false;
+    const retrySync = async () => {
+      if (replaying) return;
+      replaying = true;
+      try {
+        for (const id of await pendingThreads(uid)) {
+          if (!active) break;
+          if (id === thread) await sync(id);
+          else await syncOutbox(uid, masterKey, id).catch(() => {});
+        }
+      } catch {
+        // IndexedDB can be temporarily unavailable. The next reconnect or timer retries.
+      } finally {
+        replaying = false;
+      }
     };
+    void retrySync();
     const timer = setInterval(retrySync, 30000);
     window.addEventListener("online", retrySync);
     return () => {
@@ -106,7 +118,7 @@ export function useConversation() {
       operation.current?.abort();
       window.removeEventListener("online", retrySync);
     };
-  }, [uid, masterKey, sync]);
+  }, [uid, masterKey, sync, thread]);
   function removeJournal() {
     clearJournal(masterKey);
     setJournal(undefined);
@@ -135,6 +147,7 @@ export function useConversation() {
     operation.current = controller;
     setWorking(true);
     setError("");
+    setRetryable(false);
     setPartial(null);
     const message: ChatMessage = retry ?? {
       id: crypto.randomUUID(),
@@ -190,6 +203,7 @@ export function useConversation() {
       }
     } catch (err) {
       if (mounted.current) {
+        setRetryable(!(err instanceof ApiError && ["quota_config", "provider_config", "auth_service", "auth", "route"].includes(err.code)));
         setError(
           controller.signal.aborted
             ? "Reply stopped."
@@ -212,7 +226,8 @@ export function useConversation() {
     partial,
     error,
     syncError,
-    setError,
+    setError: (notice: string) => { setRetryable(false); setError(notice); },
+    retryable,
     more,
     older,
     send,

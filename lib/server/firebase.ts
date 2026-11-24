@@ -36,10 +36,16 @@ export async function authenticatedUid(request: Request) {
   const token = /^Bearer ([^\s]{1,8192})$/.exec(request.headers.get("authorization") ?? "")?.[1];
   const denied = () => new PublicError(401, "Sign in to OVI again to continue.", undefined, "auth");
   if (!token) throw denied();
-  const auth = getAuth(adminApp());
   try {
-    return (await auth.verifyIdToken(token, true)).uid;
-  } catch {
-    throw denied();
+    return (await getAuth(adminApp()).verifyIdToken(token, true)).uid;
+  } catch (error) {
+    // A missing server identity also fails the revocation check. Signing the user
+    // out cannot repair it. Keep the SDK error text and credential details private.
+    const code = error && typeof error === "object" && "code" in error ? error.code : undefined;
+    if (typeof code === "string" && [
+      "auth/argument-error", "auth/invalid-id-token", "auth/id-token-expired",
+      "auth/id-token-revoked", "auth/user-disabled", "auth/user-not-found",
+    ].includes(code)) throw denied();
+    throw new PublicError(503, "OVI’s server could not verify sign-in with Firebase. Check the server’s Firebase Admin setup.", undefined, "auth_service");
   }
 }

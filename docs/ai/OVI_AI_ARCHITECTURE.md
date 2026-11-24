@@ -22,7 +22,7 @@ sequenceDiagram
     U->>F: Sync ciphertext
 ```
 
-An upstream rejection leaves the original user turn available for an explicit retry. An unfinished assistant response stays transient. Cloud retries replay ciphertext only. The Firestore listener decrypts the latest 32 messages after unlock. Earlier pages are loaded with a snapshot cursor. The single V1 thread resumes the most recently created existing conversation, or uses a stable first-thread ID for a new account.
+An upstream rejection leaves the original user turn available for an explicit retry. An unfinished assistant response stays transient. Cloud retries replay ciphertext only. The Firestore listener decrypts the latest 32 messages after unlock. Earlier pages are loaded with a snapshot cursor. Opening Talk starts a fresh conversation in memory. Its first message creates the encrypted history entry. The collapsible History list groups conversations by their creation date in the reader’s local time zone and loads older headers in pages of 24. Selecting an entry resumes that thread. Untitled legacy conversations remain accessible by date and time. An encrypted local queue keeps unsynced chats available on their original device.
 
 The welcome and conversation views share the composer, artwork and Vault guard. The active layout gives the scroll region the space left after the composer is measured by CSS. The account avatar opens usage and Vault controls. Screenshots under `screenshots/` use synthetic text and an emulator account.
 

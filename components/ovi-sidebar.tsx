@@ -1,12 +1,12 @@
 "use client";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useRef, useState, type MouseEvent } from "react";
+import { useRef, useState, type MouseEvent, type ReactNode } from "react";
 import { BookOpen, MessageCircle } from "lucide-react";
 import { OVILogo } from "./ovi-logo";
 import { UserControls } from "./user-controls";
 
-export function OVISidebar({ active = "talk" }: { active?: "talk" | "journal" }) {
+export function OVISidebar({ active = "talk", children }: { active?: "talk" | "journal"; children?: ReactNode }) {
   const router = useRouter();
   const navigating = useRef(false);
   const [notice, setNotice] = useState("");
@@ -27,6 +27,7 @@ export function OVISidebar({ active = "talk" }: { active?: "talk" | "journal" })
     <nav className="navigation" aria-label="Main navigation">
       <Link className={`nav-item${active === "talk" ? " active" : ""}`} href="/" onClick={(event) => void navigate(event, "/")} aria-current={active === "talk" ? "page" : undefined}><MessageCircle aria-hidden="true" /><span className="desktop-label">Talk to OVI</span><span className="mobile-label">Talk</span></Link>
       <Link className={`nav-item${active === "journal" ? " active" : ""}`} href="/journal" onClick={(event) => void navigate(event, "/journal")} aria-current={active === "journal" ? "page" : undefined}><BookOpen aria-hidden="true" /><span>Journal</span></Link>
+      {children}
       {notice && <p className="sidebar-save-notice" role="alert">{notice}</p>}
     </nav><div className="sidebar-art" aria-hidden="true" />
   </aside>;

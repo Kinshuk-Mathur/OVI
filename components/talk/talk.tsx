@@ -25,8 +25,8 @@ function Bubble({ role, text }: { role: "assistant" | "user"; text: string }) {
     </article>
   );
 }
-export function Talk() {
-  const chat = useConversation(),
+export function Talk({ thread, fresh }: { thread: string; fresh: boolean }) {
+  const chat = useConversation(thread, fresh),
     active = chat.rows.length > 0;
   const region = useRef<HTMLDivElement>(null),
     pinned = useRef(true),
@@ -95,6 +95,8 @@ export function Talk() {
             {chat.partial !== null && <Bubble role="assistant" text={chat.partial} />}
           </div>
         </div>
+      ) : !fresh && !chat.ready ? (
+        <p role="status">Opening conversation…</p>
       ) : (
         <Greeting />
       )}
@@ -103,7 +105,7 @@ export function Talk() {
         {(chat.error || chat.syncError) && (
           <p className="chat-notice" role="status">
             {chat.error || chat.syncError}
-            {chat.error && last?.role === "user" && !chat.working && (
+            {chat.retryable && chat.error && last?.role === "user" && !chat.working && (
               <button onClick={() => void chat.send(last.text, () => {}, last)}>Try reply again</button>
             )}
           </p>

@@ -39,8 +39,11 @@ export function requireId(id: unknown) {
   return id;
 }
 function orgLimit(name: string, max?: number) {
-  if (!process.env[name]) throw new PublicError(503, "OVI’s AI service is awaiting configuration.");
-  return integer(name, 1, max);
+  // Missing or invalid operator settings must fail before any provider request.
+  if (process.env[name]) {
+    try { return integer(name, 1, max); } catch { /* Report the same safe configuration error. */ }
+  }
+  throw new PublicError(503, "OVI’s server needs valid Groq usage limits before it can accept this request.", undefined, "quota_config");
 }
 const live = (leases: Lease[] = [], now: number) => leases.filter((l) => l.until > now);
 const recent = (entries: WindowEntry[] = [], now: number) => entries.filter((e) => e.at > now - 60000);

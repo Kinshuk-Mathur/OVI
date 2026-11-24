@@ -44,15 +44,28 @@ const local = () =>
       ]);
     },
   });
-const threads = (uid: string) => collection(getFirebaseServices().db, "users", uid, "conversations");
+export const threads = (uid: string) => collection(getFirebaseServices().db, "users", uid, "conversations");
 const messages = (uid: string, thread: string) => collection(threads(uid), thread, "messages");
 export type PageCursor = QueryDocumentSnapshot;
-/** Reopen an existing conversation created by the original repository. A deterministic first
- * thread avoids splitting an empty account into two conversations during concurrent device setup. */
-export async function currentThread(uid: string) {
-  const result = await getDocs(query(threads(uid), orderBy("createdAt", "desc"), limit(1)));
-  return result.docs[0]?.id ?? "main";
+/** Walk distinct thread keys for this account, including chats created while offline.
+ * The compound-key range excludes other accounts without decrypting any of their records. */
+export async function pendingThreads(uid: string) {
+  const db = await local();
+  try {
+    const index = db.transaction("messages").store.index("thread");
+    const range = IDBKeyRange.bound([uid], [uid, []]);
+    const ids: string[] = [];
+    let cursor = await index.openKeyCursor(range, "nextunique");
+    while (cursor) {
+      ids.push(cursor.key[1]);
+      cursor = await cursor.continue();
+    }
+    return ids;
+  } finally {
+    db.close();
+  }
 }
+
 export async function checkpointMessage(
   uid: string,
   key: CryptoKey,
@@ -105,19 +118,32 @@ export async function pendingMessages(uid: string, key: CryptoKey, thread: strin
     })),
   );
 }
+/** A short excerpt makes the history recognizable. Persist it only inside the vault envelope. */
+export function firstTurnSummary(rows: ChatMessage[]) {
+  const ordered = [...rows].sort((a, b) => a.at - b.at || a.id.localeCompare(b.id));
+  const first = ordered.find((row) => row.role === "user") ?? ordered[0];
+  return first && { title: Array.from(first.text.trim().replace(/\s+/g, " ")).slice(0, 64).join(""), at: first.at };
+}
 /** Exactly one immutable Firestore record per local ID. A network failure keeps ciphertext in
  * IndexedDB. Replaying an acknowledged write only clears that outbox item; it never calls Groq. */
 export async function syncOutbox(uid: string, key: CryptoKey, thread: string) {
   const rows = await pending(uid, thread);
   if (!rows.length) return;
-  const parent = doc(threads(uid), thread),
-    header = await encryptChatContent(key, uid, threadKey(thread), {});
+  const parent = doc(threads(uid), thread);
+  let header: EncryptedRecord | undefined;
   for (const row of rows) {
     const ref = doc(messages(uid, thread), row.id);
     await runTransaction(getFirebaseServices().db, async (tx) => {
       const root = await tx.get(parent),
         existing = await tx.get(ref);
-      if (!root.exists()) tx.set(parent, { version: 1, encrypted: header, createdAt: serverTimestamp() });
+      if (!root.exists()) {
+        // Outbox IDs are random. Use message time to find the opening turn after an offline replay.
+        if (!header) {
+          const turns = await Promise.all(rows.map((r) => decode(uid, key, thread, r.id, r.encrypted, 0)));
+          header = await encryptChatContent(key, uid, threadKey(thread), { title: firstTurnSummary(turns)?.title });
+        }
+        tx.set(parent, { version: 1, encrypted: header, createdAt: serverTimestamp() });
+      }
       if (!existing.exists())
         tx.set(ref, { version: 1, encrypted: row.encrypted, createdAt: serverTimestamp() });
       else if (existing.data().encrypted?.payload?.ciphertext !== row.encrypted.payload.ciphertext)

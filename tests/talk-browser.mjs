@@ -34,6 +34,9 @@ async function signIn(page, first) {
 try {
   const desk = await browser.newContext({ viewport: { width: 1672, height: 941 } }),
     page = await desk.newPage();
+  const signedOut = await desk.request.post(origin + "/api/ai/chat");
+  assert.equal(signedOut.status(), 401);
+  assert.equal((await signedOut.json()).code, "auth");
   await signIn(page, true);
   await page.getByLabel("Create your OVI password").fill(password);
   await page.getByLabel("Confirm your password").fill(password);
@@ -93,6 +96,20 @@ try {
   );
   console.log("Desktop layout", JSON.stringify(bounds));
   await page.screenshot({ animations: "disabled", path: output + "/chat-desktop.png" });
+  const history = page.getByRole("button", { name: "Chat history" });
+  await history.click();
+  await page.getByRole("button", { name: new RegExp(texts[0]) }).waitFor();
+  assert.ok(await page.locator(".history-day h3").innerText());
+  assert.ok(await page.locator(".history-entry time").getAttribute("datetime"));
+  await page.keyboard.press("Escape");
+  assert.equal(await history.getAttribute("aria-expanded"), "false");
+  await history.click();
+  await page.getByRole("button", { name: "New chat", exact: true }).click();
+  await page.locator(".greeting").waitFor();
+  assert.equal(await page.locator(".chat-row").count(), 0);
+  await history.click();
+  await page.getByRole("button", { name: new RegExp(texts[0]) }).click();
+  await page.getByText(texts[3], { exact: true }).waitFor();
   await page.getByRole("button", { name: "Account and usage" }).filter({ visible: true }).click();
   await page.getByText("Messages remaining").waitFor();
   await page.getByRole("button", { name: "Lock Vault" }).click();
@@ -107,7 +124,14 @@ try {
   await signIn(mobile, false);
   await mobile.getByLabel("Your OVI password", { exact: true }).fill(password);
   await mobile.getByRole("button", { name: "Unlock OVI" }).click();
+  await mobile.locator(".greeting").waitFor();
+  assert.equal(await mobile.locator(".chat-row").count(), 0);
+  const mobileHistory = mobile.getByRole("button", { name: "Chat history" });
+  assert.equal(await mobileHistory.getAttribute("aria-expanded"), "false");
+  await mobileHistory.click();
+  await mobile.getByRole("button", { name: new RegExp(texts[0]) }).click();
   await mobile.getByText(texts[3], { exact: true }).waitFor();
+  assert.equal(await mobileHistory.getAttribute("aria-expanded"), "false");
   await mobile.addStyleTag({ content: "nextjs-portal{display:none}" });
   assert.ok(await mobile.evaluate(() => document.documentElement.scrollWidth <= innerWidth));
   await mobile.screenshot({ animations: "disabled", path: output + "/chat-mobile.png" });
@@ -127,6 +151,7 @@ try {
   await mobile.route("**/api/ai/chat", async (route) => {
     const input = route.request().postDataJSON();
     if (selectedRequests++ === 0) {
+      assert.deepEqual(input.history, []);
       assert.match(input.journal, /The lake was quiet/);
       await route.fulfill({
         contentType: "application/x-ndjson",
@@ -134,7 +159,7 @@ try {
       });
     } else {
       assert.equal(input.journal, undefined);
-      await route.fulfill({ status: 503, json: { error: "Synthetic service interruption." } });
+      await route.fulfill({ status: 500, contentType: "text/html", body: "<h1>Internal Server Error</h1>" });
     }
   });
   await mobile.locator("#message").fill("Talk about this entry.");
@@ -143,10 +168,22 @@ try {
   await mobile.getByRole("button", { name: "Remove journal context" }).waitFor({ state: "hidden" });
   await mobile.locator("#message").fill("Keep this turn after a failure.");
   await mobile.getByRole("button", { name: "Send message" }).click();
-  await mobile.getByText("Synthetic service interruption.", { exact: false }).waitFor();
+  await mobile.getByText(/HTTP 500/).waitFor();
   await mobile.getByText("Keep this turn after a failure.", { exact: true }).waitFor();
+  // A refresh locks the vault. Unlocking again must show a clean draft, with both
+  // durable chats still listed newest first and no entry for an unused blank chat.
+  await mobile.reload();
+  await mobile.getByLabel("Your OVI password", { exact: true }).fill(password);
+  await mobile.getByRole("button", { name: "Unlock OVI" }).click();
+  await mobile.locator(".greeting").waitFor();
+  await mobileHistory.click();
+  await mobile.getByRole("button", { name: /Talk about this entry/ }).waitFor();
+  assert.deepEqual(await mobile.locator(".history-entry span").allTextContents(), ["Talk about this entry.", texts[0]]);
+  await mobile.getByRole("button", { name: /Talk about this entry/ }).click();
+  await mobile.getByText("Keep this turn after a failure.", { exact: true }).waitFor();
+  assert.equal(await mobile.getByText(texts[0], { exact: true }).count(), 0);
   console.log(
-    "Verified emulator Google sign-in, Vault setup/lock/unlock, encrypted history on a fresh browser, four bubbles and viewport fit.",
+    "Verified new-chat launch, history toggle, date/time, chat isolation, HTML 500 feedback, emulator Google sign-in, Vault setup/lock/unlock, encrypted history on a fresh browser, four bubbles and viewport fit.",
   );
 } finally {
   await browser.close();

@@ -16,7 +16,7 @@ export function model(kind: "chat" | "voice") {
   const approved = kind === "chat" ? "openai/gpt-oss-120b" : "whisper-large-v3-turbo";
   const setting = kind === "chat" ? process.env.OVI_CHAT_MODEL : process.env.OVI_STT_MODEL;
   if (setting && setting !== approved) throw new Error("Unsupported OVI model configuration");
-  if (!process.env.GROQ_API_KEY) throw new PublicError(503, "OVI’s AI service is awaiting configuration.");
+  if (!process.env.GROQ_API_KEY) throw new PublicError(503, "OVI’s server is missing its Groq API key.", undefined, "provider_config");
   return approved;
 }
 export class UpstreamRejection extends PublicError {}
@@ -37,7 +37,9 @@ async function groq(endpoint: string, init: RequestInit) {
   const error =
     response.status === 429
       ? providerBusy(Number.isFinite(delay) ? delay : Date.now() + 60000)
-      : new PublicError(503, "OVI couldn’t reach its AI service. Please try again later.");
+      : response.status === 401 || response.status === 403
+        ? new PublicError(503, "Groq rejected OVI’s server credentials or model access.", undefined, "provider_config")
+        : new PublicError(503, "OVI couldn’t reach its AI service. Please try again later.");
   // 5xx may follow processing. Treat only definite 4xx rejection as refundable.
   if (response.status >= 500) throw error;
   throw new UpstreamRejection(error.status, error.message, error.retryAt, error.code);

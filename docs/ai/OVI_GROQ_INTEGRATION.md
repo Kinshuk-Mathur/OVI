@@ -12,6 +12,8 @@ The existing Next.js App Router supplies Node.js route handlers. Chat uses a sin
 6. Compare deployed rules with this repository and coordinate rollout of the app and Storage rules. Grant Firebase Storage Rules permission to read Firestore when prompted in the Firebase console. Old upload clients will need the new reservation flow. In the target project deploy the reviewed Firestore and Storage rules using the command in the root README. [Firebase Storage rules](https://firebase.google.com/docs/storage/security/rules-conditions)
 7. Redeploy using Netlify's Next.js runtime. Disable every Firebase emulator setting in production. Verify streaming time-to-first-text, function duration, voice body limits, cancellation and a real OAuth/Vault round trip on the deployed domain. Use separate credentials and quotas for preview environments.
 
+A signed-out POST to `/api/ai/chat` should return HTTP 401 with JSON and `code: "auth"`. An HTML 500 on this request means the deployment failed before the normal API response. Use its `x-nf-request-id` to find the function log. The Next build bundles Firebase Admin’s Auth module and its ES module dependencies for Lambda compatibility. Run `npm run build` followed by `npm run test:runtime` to exercise the compiled handler under the same module restriction.
+
 HTTP 401 on an OVI route means the Firebase identity needs attention. A Groq credential rejection is a sanitized service failure. HTTP 429 identifies a personal limit or shared capacity, with a reset or retry time when known. Never attach raw provider error bodies or request payloads to telemetry.
 
 ## Local development with live Groq

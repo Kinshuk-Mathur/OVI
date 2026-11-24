@@ -46,6 +46,33 @@ test("encrypted journal, media, and conflict branches survive Firebase transacti
   assert.equal(JSON.stringify(message.data()).includes("Private message"), false);
   const messageBytes = await decryptRecord(vault.masterKey, uid, JSON.stringify(["message", conversationId, messageId]), message.data()!.encrypted);
   assert.equal(JSON.parse(decodeText(messageBytes)).text, "Private message");
+  // History uses existing encrypted headers, and a local-only thread survives until its
+  // first cloud sync. The first user turn supplies its title, even if outbox IDs sort differently.
+  const { historyPage, pendingHistory, groupHistory } = await import("../lib/conversations/history");
+  const { checkpointMessage, syncOutbox } = await import("../lib/conversations/repository");
+  const legacy = await createConversation(uid, vault.masterKey, {});
+  const thread = crypto.randomUUID();
+  const at = Date.now();
+  await checkpointMessage(uid, vault.masterKey, thread, { id: "z", at, role: "user", text: "Opening turn" });
+  await checkpointMessage(uid, vault.masterKey, thread, { id: "a", at: at + 1, role: "assistant", text: "Reply" });
+  const pendingChats = await pendingHistory(uid, vault.masterKey);
+  assert.deepEqual(pendingChats, [{ id: thread, title: "Opening turn", at }]);
+  assert.deepEqual(await pendingHistory("another-account", vault.masterKey), []);
+  await syncOutbox(uid, vault.masterKey, thread);
+  assert.deepEqual(await pendingHistory(uid, vault.masterKey), []);
+  const { entries } = await historyPage(uid, vault.masterKey);
+  assert.equal(entries.find((row) => row.id === conversationId)?.title, "Private conversation");
+  assert.equal(entries.find((row) => row.id === legacy)?.title, "Conversation");
+  assert.equal(entries.find((row) => row.id === thread)?.title, "Opening turn");
+  const root = await getDocFromServer(doc(services.db, "users", uid, "conversations", thread));
+  assert.ok(!JSON.stringify(root.data()).includes("Opening turn"));
+  const beforeMidnight = new Date(2026, 10, 23, 23, 59).getTime();
+  const afterMidnight = new Date(2026, 10, 24, 0, 1).getTime();
+  const grouped = groupHistory(pendingChats, [
+    { id: thread, title: "Opening turn", at: beforeMidnight },
+    { id: legacy, title: "Conversation", at: afterMidnight },
+  ]);
+  assert.deepEqual([...grouped.values()].map((day) => day.map((entry) => entry.id)), [[legacy], [thread]]);
   const first = new JournalWorkspace(uid, vault.masterKey), second = new JournalWorkspace(uid, vault.masterKey);
   first.start();
   try {
