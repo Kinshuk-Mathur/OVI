@@ -11,7 +11,9 @@
     "test:vault": "node --experimental-strip-types --test tests/vault.test.mjs",
     "test:checkpoints": "node --import tsx --test tests/checkpoints.test.ts",
     "test:rules": "firebase emulators:exec --only firestore,storage --project demo-ovi \"node --test tests/firebase-rules.test.mjs\"",
-    "test:emulators": "firebase emulators:exec --only auth,firestore,storage --project demo-ovi \"node --import tsx --test tests/firebase-rules.test.mjs tests/firebase-integration.test.ts\""
+    "test:emulators": "firebase emulators:exec --only auth,firestore,storage --project demo-ovi \"node --import tsx --test tests/firebase-rules.test.mjs tests/firebase-integration.test.ts tests/quota-integration.test.ts tests/provider-routes.test.ts\"",
+    "test:ai": "node --import tsx --test tests/ai.test.ts",
+    "test:browser": "firebase emulators:exec --only auth,firestore,storage --project demo-ovi \"node tests/browser-server.mjs\""
   },
   "dependencies": {
     "@noble/hashes": "^1.8.0",
@@ -22,8 +24,11 @@
     "@tiptap/react": "^2.27.2",
     "@tiptap/starter-kit": "^2.27.2",
     "firebase": "^12.13.0",
+    "firebase-admin": "^14.5.1",
+    "gpt-tokenizer": "^3.4.0",
+    "idb": "^7.1.1",
     "lucide-react": "0.468.0",
-    "next": "15.5.28",
+    "next": "15.5.29",
     "react": "19.0.0",
     "react-dom": "19.0.0"
   },
@@ -35,9 +40,18 @@
     "autoprefixer": "^10.4.20",
     "fake-indexeddb": "^6.2.8",
     "firebase-tools": "^15.37.0",
+    "playwright": "^1.60.0",
     "postcss": "^8.5.0",
     "tailwindcss": "3.4.19",
     "tsx": "^4.23.15",
     "typescript": "5.9.3"
+  },
+  "overrides": {
+    "@firebase/firestore": {
+      "@grpc/grpc-js": "1.14.7"
+    },
+    "next": {
+      "postcss": "8.5.33"
+    }
   }
 }

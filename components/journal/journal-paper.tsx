@@ -15,6 +15,8 @@ import { DEFAULT_JOURNAL_TITLE, type JournalDraft } from "@/lib/journal-storage"
 import { isMeaningfulDraft } from "@/lib/journal-content";
 import { useJournalWorkspace } from "./journal-provider";
 import { useVault } from "@/components/auth/vault-provider";
+import { preparePhoto } from "@/lib/media/prepare-photo";
+import { selectJournal } from "@/lib/conversations/journal-selection";
 import { saveEncryptedPhoto } from "@/lib/journal/media";
 import type { JournalHandle } from "@/lib/journal/workspace";
 import { formatEntryDate, localDateKey, parseLocalDate } from "@/lib/journal-dates";
@@ -210,12 +212,14 @@ export function JournalPaper({ entryId, isNew, requestedDate }: { entryId: strin
     if (!valid.length) return;
     importingRef.current = true; setImporting(true);
     try {
-      const photos = await Promise.all(valid.map(async (file) => {
+      const photos = [];
+      // Decode one image at a time to bound peak bitmap memory on mobile devices.
+      for (const file of valid) {
         const imageId = crypto.randomUUID();
         if (!handleRef.current) throw new Error("Journal unavailable.");
-        await saveEncryptedPhoto(session.user.uid, session.masterKey, handleRef.current.journalId, imageId, file);
-        return { type: "journalImage", attrs: { imageId, journalId: handleRef.current.journalId, alt: "Journal photograph", width: 280, offset: 0 } };
-      }));
+        await saveEncryptedPhoto(session.user.uid, session.masterKey, handleRef.current.journalId, imageId, await preparePhoto(file));
+        photos.push({ type: "journalImage", attrs: { imageId, journalId: handleRef.current.journalId, alt: "Journal photograph", width: 280, offset: 0 } });
+      }
       if (currentEditor.isDestroyed) return;
       const insertAt = Math.min(position ?? currentEditor.state.selection.from, currentEditor.state.doc.content.size);
       currentEditor.chain().focus().insertContentAt(insertAt, [...photos, { type: "paragraph" }]).run();
@@ -265,7 +269,10 @@ export function JournalPaper({ entryId, isNew, requestedDate }: { entryId: strin
     while (dirtyRef.current) {
       if (!await saveNow()) return;
     }
-    router.push(`/?context=journal&id=${encodeURIComponent(entryId)}`);
+    if (!editor || !loadedRef.current || importingRef.current) return;
+    // Capture exactly what is on screen, including unsynced edits. An inbound URL cannot grant consent.
+    selectJournal(session.masterKey, titleValueRef.current, editor.getJSON());
+    router.push("/");
   }
 
   return (

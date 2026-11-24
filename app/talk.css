@@ -1,0 +1,340 @@
+/* The artwork stays fixed behind two independent layout rows. The composer takes its real
+   height (including multiline drafts and status text), so it never covers a message. */
+.talk-shell {
+  height: var(--talk-height, 100dvh);
+  min-height: 0;
+  overflow: hidden;
+}
+.talk-shell > .sidebar,
+.talk-shell > .talk-page {
+  min-height: 0;
+}
+.conversation {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  padding-bottom: max(5.2vh, env(safe-area-inset-bottom));
+}
+.chat-scroll {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+}
+.chat-column {
+  width: min(976px, calc(100% - 72px));
+  margin: 0 auto;
+  padding: clamp(90px, 13vh, 132px) 0 28px;
+  display: grid;
+  gap: 20px;
+}
+.chat-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+}
+.chat-row.user {
+  justify-content: flex-end;
+}
+.chat-avatar {
+  display: grid;
+  flex: none;
+  place-items: center;
+  margin-top: 3px;
+  width: 55px;
+  height: 55px;
+  background: #fff1df;
+  border-radius: 50%;
+  box-shadow: 0 2px 10px #9554290d;
+}
+.chat-avatar .ovi-flower {
+  width: 26px;
+}
+.chat-bubble {
+  max-width: 72%;
+  padding: 15px 29px;
+  border-radius: 35px;
+  color: #491714;
+  background: #fff0ddf7;
+  box-shadow: 0 3px 12px #76401f12;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  font:
+    600 clamp(20px, 1.65vw, 28px)/1.24 "Cormorant Garamond",
+    "Noto Serif Devanagari",
+    "Kohinoor Devanagari",
+    Georgia,
+    serif;
+}
+.user .chat-bubble {
+  background: #f7c09cea;
+  box-shadow: none;
+}
+.chat-row.assistant .chat-bubble {
+  max-width: min(72%, 690px);
+}
+.composer-dock {
+  width: 100%;
+}
+.conversation .composer-dock {
+  width: min(928px, calc(100% - 80px));
+  margin: 0 auto;
+}
+.conversation .composer {
+  margin: 0;
+  min-height: 78px;
+  padding: 9px 12px;
+}
+.conversation .send-button,
+.conversation .add-button {
+  width: 57px;
+  height: 57px;
+}
+.talk-shell .composer {
+  position: relative;
+}
+.mic-button {
+  background: transparent;
+  color: #935548;
+  display: grid;
+  place-items: center;
+  min-width: 36px;
+  height: 42px;
+  border-radius: 99px;
+  cursor: pointer;
+}
+.mic-button.recording,
+.mic-button:hover {
+  background: #fce0ce;
+}
+.voice-state {
+  position: absolute;
+  right: 70px;
+  bottom: calc(100% + 4px);
+  background: #fff3e5;
+  padding: 3px 10px;
+  border-radius: 9px;
+  font-size: 12px;
+}
+.chat-notice,
+.selected-journal,
+.earlier {
+  width: fit-content;
+  max-width: 100%;
+  margin: 4px auto 8px;
+  padding: 6px 12px;
+  border-radius: 14px;
+  background: #fff3e4;
+  color: #65362a;
+  font-size: 14px;
+}
+.chat-notice button,
+.selected-journal button {
+  margin-left: 8px;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  text-decoration: underline;
+}
+.selected-journal {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.selected-journal span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.earlier {
+  cursor: pointer;
+}
+.typing {
+  font: 16px/1 sans-serif;
+  color: #ae7060;
+  letter-spacing: 3px;
+}
+.talk-shell button:focus-visible {
+  outline: 2px solid #a74330;
+  outline-offset: 2px;
+}
+.welcome-content .composer-dock:has(.selected-journal, .chat-notice) .composer {
+  margin-top: 8px;
+}
+@media (max-width: 700px) {
+  .talk-shell {
+    display: flex;
+    flex-direction: column;
+  }
+  .talk-shell > .sidebar {
+    flex: none;
+  }
+  .talk-shell > .talk-page {
+    flex: 1;
+  }
+  .conversation {
+    padding-bottom: max(10px, env(safe-area-inset-bottom));
+  }
+  .chat-column {
+    width: calc(100% - 26px);
+    gap: 14px;
+    padding: 29px 0 20px;
+  }
+  .chat-bubble {
+    max-width: 84%;
+    padding: 11px 16px;
+    border-radius: 22px;
+    font-size: 19px;
+    line-height: 1.36;
+  }
+  .chat-row.assistant .chat-bubble {
+    max-width: calc(100% - 54px);
+  }
+  .chat-avatar {
+    width: 32px;
+    height: 32px;
+  }
+  .chat-avatar .ovi-flower {
+    width: 16px;
+  }
+  .chat-row {
+    gap: 6px;
+  }
+  .conversation .composer-dock {
+    width: calc(100% - 20px);
+  }
+  .conversation .composer {
+    min-height: 58px;
+    padding: 6px;
+    gap: 6px;
+  }
+  .conversation .send-button,
+  .conversation .add-button {
+    width: 42px;
+    height: 42px;
+  }
+}
+@media (max-width: 700px) and (max-height: 550px) {
+  .talk-shell .sidebar {
+    height: 52px;
+  }
+  .talk-shell .sidebar-top {
+    display: none;
+  }
+  .talk-shell .navigation {
+    margin-top: 4px;
+  }
+  .talk-shell .welcome-content {
+    top: 4%;
+  }
+  .talk-shell .welcome-content .composer {
+    margin-top: 12px;
+  }
+}
+.account-menu {
+  position: relative;
+}
+.account-trigger {
+  display: block;
+  background: none;
+  padding: 0;
+  border-radius: 50%;
+  cursor: pointer;
+}
+.account-popover {
+  position: absolute;
+  z-index: 8;
+  right: 0;
+  top: calc(100% + 8px);
+  width: min(280px, 88vw);
+  padding: 18px;
+  border-radius: 18px;
+  background: #fff4e6;
+  box-shadow: 0 5px 24px #79422926;
+  color: #5b302a;
+  font-size: 14px;
+  text-align: left;
+}
+.account-popover h2 {
+  margin: 0 0 10px;
+  font:
+    600 23px/1.2 Georgia,
+    serif;
+}
+.account-popover dl > div,
+.account-actions {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  margin: 6px 0;
+}
+.account-actions {
+  margin-top: 14px;
+}
+.account-actions button {
+  background: none;
+  color: #913c2c;
+  cursor: pointer;
+  text-decoration: underline;
+}
+.talk-shell .desktop-avatar,
+.talk-shell .sidebar:has(.account-popover) {
+  z-index: 4;
+}
+.talk-shell .sidebar-top:has(.account-popover) {
+  z-index: 3;
+}
+/* Sampled paper comes from the owner's watercolor reference. Both clipped illustration
+   layers use the original artwork at its intrinsic aspect ratio, with all baked-in UI outside the clips. */
+.talk-shell {
+  position: fixed;
+  inset: var(--talk-offset, 0px) 0 auto;
+  height: min(100dvh, var(--talk-height, 100dvh));
+}
+.talk-shell:has(.conversation) .talk-page,
+.talk-shell:has(.conversation) .sidebar {
+  background: #fbe7cf url("/ovi-chat-paper.webp") repeat;
+}
+.talk-shell:has(.conversation) .branch-art img {
+  mask-image: none;
+  clip-path: polygon(14.7% 0, 62% 0, 62% 4%, 50% 14%, 43% 22%, 36% 24%, 26% 47%, 14.7% 47%);
+}
+.talk-shell:has(.conversation) .landscape-art img {
+  mask-image: none;
+  clip-path: polygon(14.7% 67%, 73% 67%, 87% 68%, 90% 62%, 93% 57%, 100% 57%, 100% 100%, 14.7% 100%);
+}
+.chat-bubble {
+  font-weight: 500;
+  line-height: 1.19;
+}
+@media (min-width: 1100px) {
+  .chat-column {
+    position: relative;
+    left: 10px;
+    gap: 19px;
+  }
+}
+@media (max-width: 700px) {
+  .chat-bubble {
+    line-height: 1.36;
+  }
+  .talk-shell:has(.conversation) .branch-art {
+    opacity: 0.65;
+  }
+  .talk-shell:has(.conversation) .chat-bubble {
+    background-color: #fff0df;
+  }
+  .talk-shell:has(.conversation) .user .chat-bubble {
+    background-color: #f8c7a7;
+  }
+}
+.talk-shell:has(.conversation) .branch-art img {
+  mask-image: radial-gradient(ellipse 50% 51% at 15% 0%, #000 68%, transparent 100%);
+}
+.talk-shell:has(.conversation) .landscape-art img {
+  mask-image:
+    linear-gradient(to bottom, transparent 66.8%, #000 71%),
+    radial-gradient(ellipse 11% 15% at 99% 70%, #000 62%, transparent 100%);
+}

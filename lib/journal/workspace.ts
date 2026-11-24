@@ -7,7 +7,9 @@ import { getFirebaseServices } from "@/lib/firebase/client";
 import { RevisionConflictError, writeJournalRevision } from "@/lib/firebase/repository";
 import { decodeText, decryptRecord, encodeText, encryptRecord, type EncryptedRecord } from "@/lib/security/vault";
 import { acknowledgeCheckpoint, decryptCheckpoint, listCheckpoints, saveCheckpoint, StaleCheckpointError, type Checkpoint } from "./checkpoints";
-import { getEncryptedPhoto, saveEncryptedPhoto, uploadPendingPhotos } from "./media";
+import { getEncryptedPhoto, saveEncryptedPhoto } from "./media";
+
+import { prepareCloudDraft, mediaIds, queueRemovals, drainRemovals } from "./photo-sync";
 
 interface CloudRecord { revision: number; encrypted: EncryptedRecord }
 export interface ListedJournal extends JournalDraft { localCopy?: boolean; conflicted?: boolean }
@@ -23,18 +25,6 @@ function parseDraft(bytes: Uint8Array, journalId: string): JournalDraft {
   const draft = JSON.parse(decodeText(bytes)) as JournalDraft;
   if (!draft || draft.id !== journalId || typeof draft.title !== "string" || typeof draft.updatedAt !== "number" || !draft.content || draft.content.type !== "doc") throw new Error("Invalid journal content.");
   return draft;
-}
-function referencedMedia(node: JSONContent, journalId: string): string[] {
-  const found: string[] = [];
-  function visit(value: JSONContent) {
-    if (value.type === "journalImage") {
-      if (value.attrs?.journalId !== journalId || typeof value.attrs?.imageId !== "string") throw new Error("A photo reference is invalid.");
-      found.push(value.attrs.imageId);
-    }
-    value.content?.forEach(visit);
-  }
-  visit(node);
-  return [...new Set(found)];
 }
 export class JournalWorkspace {
   private cloud = new Map<string, CloudRecord>();
@@ -180,6 +170,7 @@ export class JournalWorkspace {
     try {
       const branches = await listCheckpoints(this.uid);
       const results = await Promise.allSettled(branches.filter((branch) => branch.localRevision > branch.syncedLocalRevision).map((branch) => this.syncBranch(branch)));
+      await drainRemovals(this.uid,this.key);
       if (results.some((result) => result.status === "rejected")) this.scheduleSync(15000);
     } catch { this.scheduleSync(15000); }
   }
@@ -191,13 +182,33 @@ export class JournalWorkspace {
       const bytes = await decryptCheckpoint(branch, this.key);
       try {
         this.setStatus(id, "Syncing…");
-        await uploadPendingPhotos(this.uid, branch.journalId, referencedMedia(parseDraft(bytes, branch.journalId).content, branch.journalId));
-        const encrypted = await encryptRecord(this.key, this.uid, journalKey(branch.journalId), bytes);
+        const fullDraft = parseDraft(bytes, branch.journalId);
+        const previous = this.cloud.get(branch.journalId);
+        let prior: JournalDraft | undefined;
+        if (previous && previous.revision === branch.baseCloudRevision) {
+          const oldBytes = await decryptRecord(this.key,this.uid,journalKey(branch.journalId),previous.encrypted);
+          try { prior = parseDraft(oldBytes,branch.journalId); } finally { oldBytes.fill(0); }
+        }
+        // Already committed references need no media reads on ordinary text-only autosaves.
+        const known = new Set(prior ? mediaIds(prior.content,branch.journalId) : []);
+        const { draft, notice } = await prepareCloudDraft(this.uid, fullDraft, known, this.key);
+        if (prior) {
+          if (notice && JSON.stringify(prior) === JSON.stringify(draft)) {
+            this.setStatus(id, notice + " Text synced; photo saved locally."); this.scheduleSync(60000); return;
+          }
+          const retained = new Set(mediaIds(fullDraft.content,branch.journalId));
+          const removed = [...known].filter(mediaId => !retained.has(mediaId));
+          await queueRemovals(this.uid,branch.journalId,removed,branch.baseCloudRevision + 1);
+        }
+        const payload = notice ? encodeText(JSON.stringify(draft)) : bytes;
+        const encrypted = await encryptRecord(this.key, this.uid, journalKey(branch.journalId), payload);
+        if (payload !== bytes) payload.fill(0);
         if (encrypted.payload.ciphertext.length > 800000) { this.setStatus(id, "Entry too large to sync — saved locally"); return; }
         const revision = await writeJournalRevision(this.uid, branch.journalId, encrypted, branch.baseCloudRevision);
-        await acknowledgeCheckpoint(this.uid, branch.journalId, branch.branchId, branch.baseCloudRevision, branch.localRevision, revision);
+        await acknowledgeCheckpoint(this.uid, branch.journalId, branch.branchId, branch.baseCloudRevision, branch.localRevision, revision, Boolean(notice));
         this.cloud.set(branch.journalId, { revision, encrypted });
-        this.setStatus(id, "Synced");
+        this.setStatus(id, notice ? notice + " Text synced; photo saved locally." : "Synced");
+        if (notice) this.scheduleSync(60000);
         // A local checkpoint may have advanced while the request was in flight.
         const latest = (await listCheckpoints(this.uid)).find((item) => item.journalId === branch.journalId && item.branchId === branch.branchId);
         if (latest && latest.localRevision > latest.syncedLocalRevision) { this.setStatus(id, "Saved locally"); this.scheduleSync(); }

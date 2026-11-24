@@ -2,10 +2,11 @@
 
 import { Maximize2, Minimize2 } from "lucide-react";
 import { useEffect, useState } from "react";
+import { AccountMenu } from "./talk/account-menu";
 import { UserAvatar } from "./user-avatar";
 import { useVault } from "@/components/auth/vault-provider";
 
-export function UserControls({ showFullscreen = true }: { showFullscreen?: boolean }) {
+export function UserControls({ showFullscreen = true, compact = false }: { showFullscreen?: boolean; compact?: boolean }) {
   const { lock } = useVault();
   const [supported, setSupported] = useState(false);
   const [fullscreen, setFullscreen] = useState(false);
@@ -29,6 +30,8 @@ export function UserControls({ showFullscreen = true }: { showFullscreen?: boole
     }
   }
 
+  const lockVault = () => void lock().then(success => { if (!success) setError("Finish saving your changes before locking."); });
+  if (compact) return <div className="user-controls"><AccountMenu lock={lockVault} fullscreen={fullscreen ? "Exit fullscreen" : "Enter fullscreen"} toggle={showFullscreen && supported ? toggleFullscreen : undefined}/>{error && <span role="status">{error}</span>}</div>;
   return <div className="user-controls">
     {showFullscreen && supported && <button className="fullscreen-button" type="button" onClick={() => void toggleFullscreen()} aria-label={fullscreen ? "Exit fullscreen" : "Enter fullscreen"} title={fullscreen ? "Exit fullscreen" : "Enter fullscreen"}>{fullscreen ? <Minimize2 aria-hidden="true" /> : <Maximize2 aria-hidden="true" />}</button>}
     {error && <span className="fullscreen-error" role="status">{error}</span>}

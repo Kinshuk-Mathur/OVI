@@ -2,13 +2,19 @@ rules_version = '2';
 service firebase.storage {
   match /b/{bucket}/o {
     match /users/{uid}/journal-media/{journalId}/{mediaId} {
-      allow read: if request.auth != null && request.auth.uid == uid;
-      // Immutable ciphertext: retries can use a new random media ID.
-      allow create: if resource == null && request.auth != null && request.auth.uid == uid
-        && request.resource.size > 0 && request.resource.size <= 20971520
+      function owner() { return request.auth != null && request.auth.uid == uid; }
+      function reserved() {
+        let path = /databases/(default)/documents/mediaUsage/$(uid)/journals/$(journalId)/objects/$(mediaId);
+        return firestore.exists(path) && validTicket(firestore.get(path).data);
+      }
+      function validTicket(ticket) {
+        return ticket.state == 'reserved' && ticket.until > request.time && ticket.size == request.resource.size;
+      }
+      allow read: if owner();
+      allow create: if resource == null && owner() && request.resource.size > 0 && request.resource.size <= 5242880
         && request.resource.contentType == 'application/octet-stream'
         && request.resource.metadata.keys().hasOnly(['encryptionVersion'])
-        && request.resource.metadata.encryptionVersion == '1';
+        && request.resource.metadata.encryptionVersion == '1' && reserved();
       allow update, delete: if false;
     }
     match /{allPaths=**} { allow read, write: if false; }

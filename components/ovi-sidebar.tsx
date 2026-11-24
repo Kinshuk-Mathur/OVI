@@ -23,7 +23,7 @@ export function OVISidebar({ active = "talk" }: { active?: "talk" | "journal" })
     } finally { navigating.current = false; }
   }
   return <aside className="sidebar">
-    <div className="sidebar-top"><OVILogo /><div className="mobile-avatar"><UserControls showFullscreen={active !== "journal"} /></div></div>
+    <div className="sidebar-top"><OVILogo /><div className="mobile-avatar"><UserControls compact={active === "talk"} showFullscreen={active !== "journal"} /></div></div>
     <nav className="navigation" aria-label="Main navigation">
       <Link className={`nav-item${active === "talk" ? " active" : ""}`} href="/" onClick={(event) => void navigate(event, "/")} aria-current={active === "talk" ? "page" : undefined}><MessageCircle aria-hidden="true" /><span className="desktop-label">Talk to OVI</span><span className="mobile-label">Talk</span></Link>
       <Link className={`nav-item${active === "journal" ? " active" : ""}`} href="/journal" onClick={(event) => void navigate(event, "/journal")} aria-current={active === "journal" ? "page" : undefined}><BookOpen aria-hidden="true" /><span>Journal</span></Link>

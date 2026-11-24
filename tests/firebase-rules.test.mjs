@@ -49,6 +49,15 @@ test('media rules allow only owner-scoped immutable encrypted objects', async ()
   const path = 'users/alice/journal-media/j1/m1';
   const object = ref(a, path), bytes = new Uint8Array([1, 2, 3]);
   await assertFails(uploadBytes(ref(a, 'users/alice/journal-media/j1/bad'), bytes, { contentType: 'image/jpeg' }));
+  const opts = { contentType: 'application/octet-stream', customMetadata: { encryptionVersion: '1' } };
+  const ticketPath = 'mediaUsage/alice/journals/j1/objects/m1';
+  const ticket = { state: 'reserved', size: bytes.length, until: new Date(Date.now() + 60000) };
+  await assertFails(uploadBytes(object, bytes, opts));
+  await assertFails(setDoc(doc(env.authenticatedContext('alice').firestore(), ticketPath), ticket));
+  await assertFails(setDoc(doc(env.authenticatedContext('alice').firestore(), 'userUsage/alice'), { chat: 0 }));
+  await assertFails(getDoc(doc(env.authenticatedContext('bob').firestore(), 'userUsage/alice')));
+  await env.withSecurityRulesDisabled(async ctx => setDoc(doc(ctx.firestore(), ticketPath), ticket));
+  await assertFails(uploadBytes(object, new Uint8Array(7), opts));
   await assertSucceeds(uploadBytes(object, bytes, { contentType: 'application/octet-stream', customMetadata: { encryptionVersion: '1' } }));
   await assertSucceeds(getBytes(object));
   await assertFails(getBytes(ref(b, path)));

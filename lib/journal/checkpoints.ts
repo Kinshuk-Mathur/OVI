@@ -83,7 +83,7 @@ export function decryptCheckpoint(checkpoint: Checkpoint, masterKey: CryptoKey):
   return decryptRecord(masterKey, checkpoint.uid, recordId(checkpoint.journalId, checkpoint.branchId), checkpoint.encrypted);
 }
 /** Acknowledges only an uploaded revision; newer local edits remain pending. */
-export async function acknowledgeCheckpoint(uid: string, journalId: string, branchId: string, expectedBase: number, uploadedLocalRevision: number, newCloudRevision: number): Promise<void> {
+export async function acknowledgeCheckpoint(uid: string, journalId: string, branchId: string, expectedBase: number, uploadedLocalRevision: number, newCloudRevision: number, photosPending = false): Promise<void> {
   [uid, journalId, branchId].forEach(validateId);
   if (!Number.isSafeInteger(expectedBase) || expectedBase < 0 || !Number.isSafeInteger(uploadedLocalRevision) || uploadedLocalRevision < 1 || newCloudRevision !== expectedBase + 1) throw new Error("Invalid synchronization revision.");
   const db = await database();
@@ -97,7 +97,7 @@ export async function acknowledgeCheckpoint(uid: string, journalId: string, bran
       if (!current || current.baseCloudRevision !== expectedBase || uploadedLocalRevision > current.localRevision || uploadedLocalRevision <= current.syncedLocalRevision) {
         failure = new StaleCheckpointError(); transaction.abort(); return;
       }
-      store.put({ ...current, baseCloudRevision: newCloudRevision, syncedLocalRevision: uploadedLocalRevision });
+      store.put({ ...current, baseCloudRevision: newCloudRevision, syncedLocalRevision: photosPending ? current.syncedLocalRevision : uploadedLocalRevision });
     };
     transaction.oncomplete = () => resolve();
     transaction.onabort = () => reject(failure ?? transaction.error ?? new Error("Could not acknowledge encrypted checkpoint."));

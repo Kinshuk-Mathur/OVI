@@ -16,6 +16,16 @@ process.env.NEXT_PUBLIC_FIREBASE_APP_ID = "1:123:web:demo";
 process.env.NEXT_PUBLIC_FIREBASE_USE_EMULATORS = "true";
 
 test("encrypted journal, media, and conflict branches survive Firebase transactions", async () => {
+  // Run the actual Next route functions in-process. Identity verification, transactions and
+  // bucket metadata still use the three real Firebase emulators. No paid provider is contacted.
+  const routes = {
+    "/api/media/reserve": (await import("../app/api/media/reserve/route")).POST,
+    "/api/media/complete": (await import("../app/api/media/complete/route")).POST,
+    "/api/media/remove": (await import("../app/api/media/remove/route")).POST,
+  };
+  const network = globalThis.fetch;
+  globalThis.fetch = (input, init) => typeof input === "string" && input in routes
+    ? routes[input as keyof typeof routes](new Request("http://localhost" + input, init)) : network(input, init);
   const { getFirebaseServices } = await import("../lib/firebase/client");
   const { createVaultOnce, loadVault, updateVaultAfterRecovery } = await import("../lib/firebase/repository");
   const { createVault, recoverVault, unlockVault, decryptRecord, decodeText } = await import("../lib/security/vault");
@@ -99,6 +109,29 @@ test("encrypted journal, media, and conflict branches survive Firebase transacti
     await first.syncPending();
     assert.equal((await getDocFromServer(doc(services.db, "users", uid, "journals", "missing-photo-journal"))).exists(), false);
     assert.ok((await listCheckpoints(uid)).some((branch) => branch.journalId === "missing-photo-journal" && branch.localRevision > branch.syncedLocalRevision));
+    // Photo limits must be independent of text synchronization. The full local branch keeps
+    // its note and photo until storage capacity becomes available, then publishes both together.
+    const { db: adminDb } = await import("../lib/server/firebase");
+    const summary = adminDb().doc("mediaUsage/" + uid);
+    const realBytes = (await summary.get()).get("bytes");
+    await summary.update({ bytes: 250 * 1024 * 1024 });
+    const capped = await first.open("photo-quota-journal", true);
+    await saveEncryptedPhoto(uid, vault.masterKey, capped.handle.journalId,"queued-photo",photo);
+    const withPhoto = { ...draft, id: capped.handle.journalId, content: {type:"doc",content:[
+      {type:"paragraph",content:[{type:"text",text:"Text while storage is full"}]},
+      {type:"journalImage",attrs:{journalId:capped.handle.journalId,imageId:"queued-photo",note:"Trip note",width:280,offset:10}},
+    ]}};
+    await capped.handle.save(withPhoto); await first.syncPending();
+    const quotaRef = doc(services.db,"users",uid,"journals",capped.handle.journalId);
+    const cloudDraft = async () => JSON.parse(decodeText(await decryptRecord(vault.masterKey,uid,JSON.stringify(["journal",capped.handle.journalId]),(await getDocFromServer(quotaRef)).get("encrypted"))));
+    assert.match(JSON.stringify(await cloudDraft()),/Text while storage is full/);
+    assert.doesNotMatch(JSON.stringify(await cloudDraft()),/queued-photo/);
+    assert.equal((await listCheckpoints(uid)).filter(c=>c.journalId===capped.handle.journalId && c.localRevision>c.syncedLocalRevision).length,1);
+    await summary.update({bytes:realBytes}); await first.syncPending();
+    assert.match(JSON.stringify(await cloudDraft()),/Trip note/);
+    const committed = await first.open(capped.handle.journalId,false);
+    await committed.handle.save({...withPhoto,content:{type:"doc",content:[withPhoto.content.content[0]]}}); await first.syncPending();
+    assert.equal((await summary.get()).get("bytes"),realBytes);
     const recovered = await recoverVault(uid, vault.recoveryKey, "a different secure password", vault.metadata);
     await updateVaultAfterRecovery(uid, recovered.metadata, 1);
     const refreshedVault = await loadVault(uid);
@@ -107,5 +140,5 @@ test("encrypted journal, media, and conflict branches survive Firebase transacti
     const recoveredBytes = await decryptRecord(unlocked, uid, JSON.stringify(["journal", "journal-1"]), latest.data()!.encrypted);
     assert.equal(JSON.parse(decodeText(recoveredBytes)).title, "First device");
     await assert.rejects(updateVaultAfterRecovery(uid, recovered.metadata, 1));
-  } finally { first.close(); second.close(); await services.auth.signOut(); }
+  } finally { first.close(); second.close(); await services.auth.signOut(); globalThis.fetch = network; }
 });
